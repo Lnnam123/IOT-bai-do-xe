@@ -1,4 +1,5 @@
-# HỆ THỐNG ĐẾM XE & KHÓA BARIE TỰ ĐỘNG BẰNG ESP32 (SMART PARKING IOT)
+# 🚗 HỆ THỐNG ĐẾM XE & KHÓA BARIE TỰ ĐỘNG BẰNG ESP32 (SMART PARKING IOT)
+> **Phiên bản chuẩn hóa Node.js & Vite** với kiến trúc module hóa hiện đại, hỗ trợ Hot Module Replacement (HMR) và máy chủ Node.js Gateway.
 
 Hệ thống bãi đỗ xe thông minh sử dụng **NodeMCU-32S ESP32**, **2 Cảm biến hồng ngoại IR** và **2 Động cơ Servo MG90S** với các tính năng:
 1. **Đếm xe tự động:**
@@ -13,7 +14,58 @@ Hệ thống bãi đỗ xe thông minh sử dụng **NodeMCU-32S ESP32**, **2 C�
 
 ---
 
-## 🔌 SƠ ĐỒ ĐẤU NỐI PHẦN CỨNG
+## 🚀 HƯỚNG DẪN KHỞI CHẠY DỰ ÁN
+
+### 1. Yêu cầu hệ thống
+- Đã cài đặt **Node.js** (Phiên bản LTS khuyên dùng: v20+ hoặc v26+).
+
+### 2. Cài đặt thư viện (Dependencies)
+Mở terminal tại thư mục dự án và chạy:
+```bash
+npm install
+```
+
+### 3. Các lệnh chạy dự án
+
+| Lệnh | Chức năng | Địa chỉ truy cập |
+| :--- | :--- | :--- |
+| `npm run dev` | Khởi chạy **Vite Dev Server** (HMR, sửa code nhận ngay) | `http://localhost:3000` |
+| `npm run build` | Đóng gói tối ưu hóa cho sản xuất vào thư mục `dist/` | N/A |
+| `npm run preview` | Xem trước bản build tĩnh của Vite | `http://localhost:4173` |
+| `npm start` hoặc `npm run server` | Chạy **Node.js Backend & ESP32 Proxy Server** | `http://localhost:5000` |
+
+> 💡 **Khởi chạy nhanh trên Windows:** Bạn có thể nhấp đúp chuột vào file **`start.bat`** hoặc chạy **`start_server.ps1`** trong PowerShell để chọn chế độ chạy tiện lợi!
+
+---
+
+## 📂 CẤU TRÚC THƯ MỤC DỰ ÁN
+
+```text
+WebIOT/
+├── dist/                    # Bản build production đóng gói hoàn chỉnh
+├── esp32/
+│   └── esp32_parking.ino    # Mã nguồn nạp vi điều khiển ESP32
+├── src/
+│   ├── api.js               # Service gọi REST API ESP32 & Backend Proxy
+│   ├── main.js              # Điểm khởi đầu ứng dụng Vite (Event handlers, bootstrap)
+│   ├── schematic.css        # Giao diện trang sơ đồ đấu nối & sa bàn
+│   ├── schematic.js         # Logic mô phỏng mạch điện & serial monitor
+│   ├── state.js             # Quản lý trạng thái bãi xe, ô đỗ, tính cước phí
+│   ├── style.css            # Toàn bộ stylesheet giao diện giám sát chính
+│   └── ui.js                # Điều khiển DOM, render thẻ ô đỗ, KPI, modal
+├── index.html               # Trang Dashboard giám sát bãi xe thời gian thực
+├── package.json             # Cấu hình dự án Node.js & dependencies
+├── server.js                # Máy chủ Node.js Express (REST API + CORS Proxy)
+├── so_do_ket_noi.html       # Sơ đồ đấu dây chi tiết & Sa bàn in nộp báo cáo (A4)
+├── start.bat                # Phím tắt khởi động 1-click cho Windows
+├── start_server.ps1         # Script PowerShell hỗ trợ khởi chạy
+├── vite.config.js           # Cấu hình Vite (Multi-page rollup & proxy)
+└── README.md
+```
+
+---
+
+## 🔌 SƠ ĐỒ ĐẤU NỐI PHẦN CỨNG (ESP32)
 
 | Thiết bị | Chân trên Thiết bị | Chân trên NodeMCU-32S | Chức năng hoạt động |
 | :--- | :--- | :--- | :--- |
@@ -24,19 +76,10 @@ Hệ thống bãi đỗ xe thông minh sử dụng **NodeMCU-32S ESP32**, **2 C�
 
 ---
 
-## 🖥️ CÁC TRANG WEB ĐÃ XÂY DỰNG
+## 🌐 DANH SÁCH REST API (BACKEND NODE.JS & ESP32)
 
-1. **[index.html](file:///D:/WebIOT/index.html)**: Trang giám sát chính:
-   - Hiển thị số xe lớn, thanh tiến trình lấp đầy (Xanh lá -> Vàng -> Đỏ).
-   - Ô cài đặt sức chứa tối đa và nút **Lưu giới hạn** (gửi lệnh xuống ESP32).
-   - Banner cảnh báo nhấp nháy khi bãi đầy.
-   - Nút mô phỏng xe vào (+1) và xe ra (-1).
-
-2. **[so_do_ket_noi.html](file:///D:/WebIOT/so_do_ket_noi.html)**: Trang hướng dẫn sa bàn & chạy thử mô phỏng:
-   - Bản vẽ sa bàn vị trí đặt 2 cảm biến trước 2 barie.
-   - Bộ mô phỏng tương tác: Thử nghiệm tăng/giảm sức chứa và xem trực tiếp Barie bị khóa khi bãi đầy!
-   - Hỗ trợ bấm **In Sơ Đồ (A4)** nộp báo cáo.
-
-3. **[esp32/esp32_parking.ino](file:///D:/WebIOT/esp32/esp32_parking.ino)**:
-   - Mã nguồn nạp vào ESP32 bằng Arduino IDE.
-   - Tự động bắt xung chống dội tín hiệu (edge detection + debounce), tự động đếm xe, khóa servo khi đầy và cung cấp REST API cho web.
+- **`GET /api/status`**: Lấy trạng thái số xe hiện có, sức chứa tối đa, trạng thái barie cổng vào/ra.
+- **`POST /api/set-limit?limit=X`**: Cập nhật giới hạn sức chứa tối đa.
+- **`POST /api/gate?gate=in|out&action=open|close`**: Ra lệnh đóng/mở barie (Tự động từ chối nếu mở cổng vào khi bãi đầy).
+- **`POST /api/reset-count`**: Đặt lại số đếm xe trong bãi về 0.
+- **`ALL /api/esp32/proxy?target=URL`**: Trạm trung chuyển CORS giúp trình duyệt gửi lệnh tới IP ESP32 mượt mà không bị chặn.

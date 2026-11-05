@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Smart Parking IoT - Giám sát bãi đỗ xe ESP32</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="/src/style.css">
 </head>
 <body>
   <!-- Header -->
@@ -51,7 +51,7 @@
         </div>
         <div class="stat-info">
           <h3>Sức chứa tối đa (Max)</h3>
-          <div class="stat-number" id="statMaxCapacity">4</div>
+          <div class="stat-number" id="statMaxCapacity">10</div>
           <span class="stat-desc">Cài đặt trên Web</span>
         </div>
       </div>
@@ -64,7 +64,7 @@
         </div>
         <div class="stat-info">
           <h3>Chỗ còn trống</h3>
-          <div class="stat-number" id="statAvailableSlots">4</div>
+          <div class="stat-number" id="statAvailableSlots">8</div>
           <span class="stat-desc text-success" id="statAvailablePercent">Còn chỗ vào bãi</span>
         </div>
       </div>
@@ -79,7 +79,7 @@
         </div>
         <div class="stat-info">
           <h3>Số xe trong bãi</h3>
-          <div class="stat-number" id="statOccupiedSlots">0</div>
+          <div class="stat-number" id="statOccupiedSlots">2</div>
           <span class="stat-desc text-danger" id="statOccupiedPercent">Đếm tự động qua IR</span>
         </div>
       </div>
@@ -145,25 +145,9 @@
 
             <!-- Slots Grid Area -->
             <div class="slots-container">
-              <!-- Khu A (Khu ô tô bên trái) -->
               <div class="parking-zone">
-                <div class="zone-title">KHU VỰC A (Ô TÔ)</div>
-                <div class="slots-grid" id="zoneAGrid">
-                  <!-- Dynamic render via JavaScript -->
-                </div>
-              </div>
-
-              <!-- Đường đi ở giữa bãi xe -->
-              <div class="inner-driveway">
-                <div class="lane-marking"></div>
-                <span>ĐƯỜNG LƯU THÔNG NỘI BỘ</span>
-                <div class="lane-marking"></div>
-              </div>
-
-              <!-- Khu B (Khu ô tô bên phải) -->
-              <div class="parking-zone">
-                <div class="zone-title">KHU VỰC B (Ô TÔ)</div>
-                <div class="slots-grid" id="zoneBGrid">
+                <div class="zone-title">SƠ ĐỒ Ô ĐỖ XE (5 Ô / HÀNG)</div>
+                <div class="slots-grid" id="slotsGrid">
                   <!-- Dynamic render via JavaScript -->
                 </div>
               </div>
@@ -224,7 +208,7 @@
           <div class="form-group">
             <label for="inputMaxCapacity">Giới hạn số lượng xe tối đa (Max):</label>
             <div class="input-with-button">
-              <input type="number" id="inputMaxCapacity" class="form-input" min="1" max="50" value="4">
+              <input type="number" id="inputMaxCapacity" class="form-input" min="1" max="50" value="10">
               <button class="btn btn-primary" id="btnUpdateCapacity">Lưu giới hạn</button>
             </div>
             <small class="helper-text">Hệ thống ESP32 sẽ tự động KHÓA Barie Cổng Vào khi số xe đạt mức này.</small>
@@ -232,10 +216,10 @@
           <div class="capacity-progress-container">
             <div class="capacity-progress-header">
               <span style="font-size:0.85rem; color:#94a3b8;">Trạng thái lấp đầy:</span>
-              <strong id="capacityProgressText" style="font-size:0.95rem; color:#38bdf8;">0 / 4 xe</strong>
+              <strong id="capacityProgressText" style="font-size:0.95rem; color:#38bdf8;">2 / 10 xe</strong>
             </div>
             <div class="progress-bar-bg" style="height: 10px; background: #0f172a; border-radius: 5px; overflow: hidden; margin-top: 6px; border: 1px solid #334155;">
-              <div id="capacityProgressFill" style="height: 100%; width: 0%; background: #10b981; transition: width 0.3s ease, background-color 0.3s ease;"></div>
+              <div id="capacityProgressFill" style="height: 100%; width: 20%; background: #10b981; transition: width 0.3s ease, background-color 0.3s ease;"></div>
             </div>
           </div>
         </div>
@@ -321,10 +305,6 @@
           <span id="modalSensorVal">IR Sensor (D14)</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label">Biển số xe:</span>
-          <strong id="modalPlateNumber" class="plate-display">--</strong>
-        </div>
-        <div class="detail-row">
           <span class="detail-label">Giờ vào bãi:</span>
           <span id="modalCheckinTime">--</span>
         </div>
@@ -344,6 +324,6 @@
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <script type="module" src="/src/main.js"></script>
 </body>
 </html>
