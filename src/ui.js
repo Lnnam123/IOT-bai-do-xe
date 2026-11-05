@@ -14,8 +14,6 @@ export const dom = {
   statAvailablePercent: document.getElementById("statAvailablePercent"),
   statOccupiedSlots: document.getElementById("statOccupiedSlots"),
   statOccupiedPercent: document.getElementById("statOccupiedPercent"),
-  statRevenue: document.getElementById("statRevenue"),
-  statTotalEntries: document.getElementById("statTotalEntries"),
 
   inputMaxCapacity: document.getElementById("inputMaxCapacity"),
   btnUpdateCapacity: document.getElementById("btnUpdateCapacity"),
@@ -54,7 +52,6 @@ export const dom = {
   modalSensorVal: document.getElementById("modalSensorVal"),
   modalCheckinTime: document.getElementById("modalCheckinTime"),
   modalDuration: document.getElementById("modalDuration"),
-  modalFee: document.getElementById("modalFee"),
   modalCheckOutBtn: document.getElementById("modalCheckOutBtn")
 };
 
@@ -66,7 +63,16 @@ export function addLog(message, type = 'info') {
   const time = getTimeString();
   const logItem = document.createElement("div");
   logItem.className = `log-item ${type}`;
+
+  let iconName = 'info';
+  if (type === 'in') iconName = 'login';
+  else if (type === 'out') iconName = 'logout';
+  else if (type === 'gate') iconName = 'fence';
+
   logItem.innerHTML = `
+    <span class="log-icon-wrap ${type}">
+      <span class="material-symbols-rounded" style="font-size:16px;">${iconName}</span>
+    </span>
     <span class="log-time">[${time}]</span>
     <span class="log-content">${message}</span>
   `;
@@ -102,12 +108,16 @@ export function renderSlots() {
 
     let bodyContent = `
       <div class="empty-placeholder">
+        <span class="material-symbols-rounded" style="font-size:22px;">check_circle</span>
         <span>VỊ TRÍ TRỐNG</span>
       </div>
     `;
 
     let footerContent = `
-      <span class="slot-status-text text-success">Ô trống</span>
+      <span class="slot-status-text text-success">
+        <span class="material-symbols-rounded" style="font-size:14px; margin-right:3px;">check_circle</span>
+        Ô trống
+      </span>
       <span class="slot-timer">Sẵn sàng</span>
     `;
 
@@ -123,15 +133,24 @@ export function renderSlots() {
       `;
 
       footerContent = `
-        <span class="slot-status-text text-danger font-bold">Đang đỗ</span>
-        <span class="slot-timer slot-timer-text" data-slot-id="${slot.id}">${formatDuration(slot.entryTime)}</span>
+        <span class="slot-status-text text-danger font-bold">
+          <span class="material-symbols-rounded" style="font-size:14px; margin-right:3px;">directions_car</span>
+          Đang đỗ
+        </span>
+        <span class="slot-timer slot-timer-text" data-slot-id="${slot.id}">
+          <span class="material-symbols-rounded" style="font-size:13px; margin-right:2px; vertical-align:middle;">schedule</span>
+          ${formatDuration(slot.entryTime)}
+        </span>
       `;
     }
 
     slotCard.innerHTML = `
       <div class="slot-header">
         <span class="slot-name">${slot.label}</span>
-        <span class="slot-sensor-badge">${slot.pin}</span>
+        <span class="slot-sensor-badge">
+          <span class="material-symbols-rounded" style="font-size:11px; margin-right:3px;">sensors</span>
+          ${slot.pin}
+        </span>
       </div>
       <div class="slot-body">
         ${bodyContent}
@@ -164,12 +183,12 @@ export function updateStatistics() {
 
   if (isFull) {
     if (dom.statAvailablePercent) {
-      dom.statAvailablePercent.textContent = "BÃI ĐÃ ĐẦY!";
-      dom.statAvailablePercent.className = "stat-desc text-danger font-bold";
+      dom.statAvailablePercent.textContent = "BÃI ĐÃ ĐẦY";
+      dom.statAvailablePercent.className = "stat-badge purple text-danger font-bold";
     }
     if (dom.statOccupiedPercent) {
-      dom.statOccupiedPercent.textContent = `100% (Khóa cổng vào)`;
-      dom.statOccupiedPercent.className = "stat-desc text-danger font-bold";
+      dom.statOccupiedPercent.textContent = `100% (Khóa cổng)`;
+      dom.statOccupiedPercent.className = "stat-badge blue text-danger font-bold";
     }
 
     // Hiển thị banner cảnh báo
@@ -183,11 +202,11 @@ export function updateStatistics() {
   } else {
     if (dom.statAvailablePercent) {
       dom.statAvailablePercent.textContent = `${available} chỗ sẵn sàng`;
-      dom.statAvailablePercent.className = "stat-desc text-success";
+      dom.statAvailablePercent.className = "stat-badge green";
     }
     if (dom.statOccupiedPercent) {
       dom.statOccupiedPercent.textContent = `${fillPct}% lấp đầy`;
-      dom.statOccupiedPercent.className = "stat-desc";
+      dom.statOccupiedPercent.className = "stat-badge blue";
     }
 
     if (dom.fullParkingAlert) dom.fullParkingAlert.style.display = "none";
@@ -209,13 +228,10 @@ export function updateStatistics() {
       dom.capacityProgressFill.style.background = "#10b981"; // Xanh
     }
   }
-
-  if (dom.statRevenue) dom.statRevenue.textContent = formatCurrency(state.totalRevenue);
-  if (dom.statTotalEntries) dom.statTotalEntries.textContent = `${state.totalEntriesToday} lượt xe hôm nay`;
 }
 
 /**
- * Cập nhật thời gian đã đỗ và cước tạm tính
+ * Cập nhật thời gian đã đỗ
  */
 export function updateSlotTimers() {
   document.querySelectorAll(".slot-timer-text").forEach(el => {
@@ -228,7 +244,6 @@ export function updateSlotTimers() {
 
   if (state.selectedSlot && state.selectedSlot.occupied) {
     if (dom.modalDuration) dom.modalDuration.textContent = formatDuration(state.selectedSlot.entryTime);
-    if (dom.modalFee) dom.modalFee.textContent = formatCurrency(calculateParkingFee(state.selectedSlot.entryTime));
   }
 }
 
@@ -247,14 +262,12 @@ export function openSlotDetail(slot) {
     dom.modalSlotStatus.className = "badge occupied";
     dom.modalCheckinTime.textContent = slot.entryTime ? new Date(slot.entryTime).toLocaleTimeString('vi-VN') : "--";
     dom.modalDuration.textContent = formatDuration(slot.entryTime);
-    dom.modalFee.textContent = formatCurrency(calculateParkingFee(slot.entryTime));
     dom.modalCheckOutBtn.style.display = "inline-block";
   } else {
     dom.modalSlotStatus.textContent = "ĐANG TRỐNG";
     dom.modalSlotStatus.className = "badge available";
     dom.modalCheckinTime.textContent = "--";
     dom.modalDuration.textContent = "0 phút";
-    dom.modalFee.textContent = "0 VNĐ";
     dom.modalCheckOutBtn.style.display = "none";
   }
 

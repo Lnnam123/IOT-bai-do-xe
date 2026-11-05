@@ -3,7 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Setup Bãi Đỗ Xe Tự Động Đếm & Khóa Barie Khi Đầy - ESP32</title>
+  <title>Sơ Đồ Đấu Dây & Mô Phỏng ESP32 - Smart Parking IoT</title>
+
+  <!-- Google Fonts: Manrope & Material Symbols Rounded (CoinTap Design System) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
   <link rel="stylesheet" href="/src/schematic.css">
 </head>
 <body>
@@ -12,35 +19,53 @@
   <!-- Top Bar -->
   <header class="top-bar">
     <div>
-      <h1>🚗 BÃI ĐỖ XE TỰ ĐỘNG ĐẾM & KHÓA CỔNG KHI ĐẦY</h1>
+      <h1>
+        <span class="material-symbols-rounded" style="color:var(--primary); font-size:28px;">local_parking</span>
+        BÃI ĐỖ XE TỰ ĐỘNG ĐẾM & KHÓA CỔNG KHI ĐẦY
+      </h1>
       <p class="sub">2 Cảm biến IR (Vào/Ra) + 2 Servo MG90S + NodeMCU-32S ESP32</p>
     </div>
     <div class="btn-group">
-      <a href="index.html" class="btn btn-success">🚗 Mở Web Giám Sát Chính</a>
-      <button class="btn btn-outline" onclick="window.print()">🖨️ In Sơ Đồ (A4)</button>
+      <a href="index.html" class="btn btn-primary">
+        <span class="material-symbols-rounded" style="font-size:18px;">dashboard</span>
+        Mở Web Giám Sát Chính
+      </a>
+      <button class="btn btn-outline" onclick="window.print()">
+        <span class="material-symbols-rounded" style="font-size:18px;">print</span>
+        In Sơ Đồ (A4)
+      </button>
     </div>
   </header>
 
   <!-- PHẦN 1: BỘ MÔ PHỎNG THỬ NGHIỆM ĐẾM & KHÓA BARIE TRỰC TIẾP TRÊN WEB -->
   <section class="section-card">
     <div class="section-title">
-      <span>🧪 CHẠY THỬ MÔ PHỎNG: ĐẾM XE & KHÓA CỔNG KHI VƯỢT MỨC</span>
-      <span style="font-size:0.8rem; font-weight:normal; color:#94a3b8;">Bấm thử để kiểm tra logic trước khi nạp vào mạch</span>
+      <span style="display:flex; align-items:center; gap:8px;">
+        <span class="material-symbols-rounded" style="color:var(--primary);">science</span>
+        CHẠY THỬ MÔ PHỎNG: ĐẾM XE & KHÓA CỔNG KHI VƯỢT MỨC
+      </span>
+      <span style="font-size:0.8rem; font-weight:normal; color:var(--text-muted);">Bấm thử để kiểm tra logic trước khi nạp vào mạch</span>
     </div>
 
     <div class="sim-panel">
       <!-- Cài đặt sức chứa & Bộ đếm -->
       <div class="capacity-config-bar">
         <div style="display:flex; align-items:center; gap:10px;">
-          <label style="font-size:0.9rem; font-weight:bold;">Sức chứa tối đa (Max):</label>
-          <input type="number" id="simMaxInput" value="3" min="1" max="20" style="width:60px; padding:6px; background:#0f172a; border:1px solid #334155; color:#fff; border-radius:4px; font-size:1rem; text-align:center;">
-          <button class="btn btn-primary" id="btnUpdateSimCap">Cập nhật</button>
+          <label style="font-size:0.9rem; font-weight:700;">Sức chứa tối đa (Max):</label>
+          <input type="number" id="simMaxInput" value="3" min="1" max="20" style="width:65px; padding:6px; background:#fff; border:1px solid var(--border-color); color:var(--text-main); border-radius:8px; font-size:1rem; font-weight:700; text-align:center;">
+          <button class="btn btn-primary" id="btnUpdateSimCap">
+            <span class="material-symbols-rounded" style="font-size:16px;">save</span>
+            Cập nhật
+          </button>
         </div>
 
         <div class="counter-display">
           <span>Số xe hiện tại:</span>
-          <span id="simCountText" style="color:#facc15;">0 / 3</span>
-          <span id="simFullBadge" class="badge-full" style="display:none;">BÃI ĐÃ ĐẦY 🚨</span>
+          <span id="simCountText" style="color:var(--primary);">0 / 3</span>
+          <span id="simFullBadge" class="badge-full" style="display:none;">
+            <span class="material-symbols-rounded" style="font-size:16px;">warning</span>
+            BÃI ĐÃ ĐẦY
+          </span>
         </div>
       </div>
 
@@ -49,7 +74,10 @@
         <!-- CỔNG VÀO (IN) -->
         <div class="gate-sim-card in-card" id="simInGateCard">
           <div class="card-header-line">
-            <strong style="color:#38bdf8; font-size:1.1rem;">LỐI VÀO (IN) - CẢM BIẾN ĐẾM +1</strong>
+            <strong style="color:var(--primary); font-size:1.1rem; display:flex; align-items:center; gap:6px;">
+              <span class="material-symbols-rounded">login</span>
+              LỐI VÀO (IN) - CẢM BIẾN ĐẾM +1
+            </strong>
             <span class="tag-pin">IR: GPIO 13 | Servo: GPIO 18</span>
           </div>
 
@@ -69,15 +97,19 @@
             </div>
           </div>
 
-          <button class="btn btn-primary" style="padding:10px; font-size:0.95rem;" id="btnSimIn">
-            🚗 Mô phỏng xe đến Cổng Vào (+1)
+          <button class="btn btn-primary" style="padding:10px; font-size:0.95rem; justify-content:center;" id="btnSimIn">
+            <span class="material-symbols-rounded">directions_car</span>
+            Mô phỏng xe đến Cổng Vào (+1)
           </button>
         </div>
 
         <!-- CỔNG RA (OUT) -->
         <div class="gate-sim-card out-card" id="simOutGateCard">
           <div class="card-header-line">
-            <strong style="color:#f59e0b; font-size:1.1rem;">LỐI RA (OUT) - CẢM BIẾN ĐẾM -1</strong>
+            <strong style="color:var(--warning); font-size:1.1rem; display:flex; align-items:center; gap:6px;">
+              <span class="material-symbols-rounded">logout</span>
+              LỐI RA (OUT) - CẢM BIẾN ĐẾM -1
+            </strong>
             <span class="tag-pin">IR: GPIO 14 | Servo: GPIO 19</span>
           </div>
 
@@ -97,14 +129,18 @@
             </div>
           </div>
 
-          <button class="btn btn-outline" style="padding:10px; font-size:0.95rem; background:#d97706;" id="btnSimOut">
-            🚗 Mô phỏng xe đến Cổng Ra (-1)
+          <button class="btn btn-outline" style="padding:10px; font-size:0.95rem; border-color:var(--warning); color:var(--warning); justify-content:center;" id="btnSimOut">
+            <span class="material-symbols-rounded">directions_car</span>
+            Mô phỏng xe đến Cổng Ra (-1)
           </button>
         </div>
       </div>
 
       <!-- Serial Monitor Ảo -->
-      <label style="font-size:0.85rem; color:#94a3b8; font-weight:bold;">📟 SERIAL MONITOR ẢO (Mô phỏng nhật ký vi điều khiển ESP32):</label>
+      <label style="font-size:0.85rem; color:var(--text-muted); font-weight:700; display:flex; align-items:center; gap:6px;">
+        <span class="material-symbols-rounded" style="font-size:18px;">terminal</span>
+        SERIAL MONITOR ẢO (Mô phỏng nhật ký vi điều khiển ESP32):
+      </label>
       <div class="serial-box" id="simSerial">
         <div class="serial-line success">[ESP32 BOOT] Khởi động hệ thống Đếm xe tự động (GPIO 13 IN, GPIO 14 OUT, Servo 18, Servo 19).</div>
         <div class="serial-line">[SẴN SÀNG] Sức chứa tối đa: 3 xe | Số xe hiện có: 0 xe.</div>
@@ -115,48 +151,73 @@
   <!-- PHẦN 2: BẢN VẼ BỐ TRÍ THIẾT BỊ TRÊN SA BÀN THỰC TẾ -->
   <section class="section-card">
     <div class="section-title">
-      <span>📐 BẢN VẼ BỐ TRÍ VỊ TRÍ 2 CẢM BIẾN & 2 BARIE TRÊN SA BÀN</span>
+      <span style="display:flex; align-items:center; gap:8px;">
+        <span class="material-symbols-rounded" style="color:var(--primary);">schema</span>
+        BẢN VẼ BỐ TRÍ VỊ TRÍ 2 CẢM BIẾN & 2 BARIE TRÊN SA BÀN
+      </span>
     </div>
 
     <div class="sa-ban-box">
       <div class="sa-ban-layout">
         <!-- Trạm Cổng Vào -->
-        <div class="road-block" style="border-color:#2563eb;">
-          <strong style="color:#38bdf8;">LỐI VÀO (IN)</strong>
-          <div style="margin:12px 0; font-size:0.8rem; color:#cbd5e1;">
+        <div class="road-block" style="border: 2px solid var(--primary); background: #FFFFFF; color: var(--text-main);">
+          <strong style="color:var(--primary); display:flex; align-items:center; justify-content:center; gap:6px;">
+            <span class="material-symbols-rounded">login</span>
+            LỐI VÀO (IN)
+          </strong>
+          <div style="margin:12px 0; font-size:0.8rem; color:var(--text-muted); text-align:left;">
             <strong>1. Mắt Cảm Biến IR #1 (GPIO 13):</strong><br>
             Đặt dưới mặt đường hoặc thành cổng chiếu ngang. Khi xe đi tới, che mắt cảm biến.<br><br>
             <strong>2. Servo MG90S #1 (GPIO 18):</strong><br>
             Đặt ngay sau cảm biến. Cần barie hạ chắn xe nếu bãi đã đầy.
           </div>
-          <div style="color:#64748b; font-size:0.8rem;">➡ Xe chạy vào bãi ➡</div>
+          <div style="color:var(--primary); font-size:0.8rem; font-weight:700;">➡ Xe chạy vào bãi ➡</div>
         </div>
 
         <!-- Khu vực sân bãi đậu xe -->
         <div class="parking-area-block">
-          <h3 style="color:#f8fafc; margin-bottom:8px;">BÃI ĐỖ XE Ô TÔ / XE MÁY</h3>
-          <p style="font-size:0.85rem; color:#94a3b8;">Sức chứa quản lý linh hoạt qua Web</p>
+          <h3 style="color:var(--text-main); margin-bottom:8px; display:flex; align-items:center; justify-content:center; gap:8px;">
+            <span class="material-symbols-rounded" style="color:var(--primary);">local_parking</span>
+            BÃI ĐỖ XE TỰ ĐỘNG
+          </h3>
+          <p style="font-size:0.85rem; color:var(--text-muted);">Sức chứa quản lý linh hoạt qua Web</p>
           <div style="margin:20px 0; display:flex; justify-content:center; gap:16px;">
-            <div style="width:70px; height:100px; border:2px dashed #475569; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:0.8rem; color:#94a3b8;">Ô 01</div>
-            <div style="width:70px; height:100px; border:2px dashed #475569; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:0.8rem; color:#94a3b8;">Ô 02</div>
-            <div style="width:70px; height:100px; border:2px dashed #475569; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:0.8rem; color:#94a3b8;">Ô 03</div>
+            <div style="width:70px; height:90px; border:2px dashed #94A3B8; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:0.8rem; font-weight:700; color:var(--text-muted); background:#F8FAFC;">
+              <span class="material-symbols-rounded" style="font-size:24px; color:var(--success);">check_circle</span>
+              Ô 01
+            </div>
+            <div style="width:70px; height:90px; border:2px dashed #94A3B8; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:0.8rem; font-weight:700; color:var(--text-muted); background:#F8FAFC;">
+              <span class="material-symbols-rounded" style="font-size:24px; color:var(--success);">check_circle</span>
+              Ô 02
+            </div>
+            <div style="width:70px; height:90px; border:2px dashed #94A3B8; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:0.8rem; font-weight:700; color:var(--text-muted); background:#F8FAFC;">
+              <span class="material-symbols-rounded" style="font-size:24px; color:var(--success);">check_circle</span>
+              Ô 03
+            </div>
           </div>
-          <div style="font-size:0.8rem; color:#facc15; background:rgba(250,204,21,0.1); padding:8px; border-radius:6px;">
-            💡 <strong>Nguyên lý:</strong> Số lượng xe trong bãi được cập nhật tức thời theo công thức:<br>
+          <div style="font-size:0.8rem; color:#92400E; background:#FEF3C7; padding:10px; border-radius:8px; border:1px solid #FDE68A;">
+            <strong style="display:inline-flex; align-items:center; gap:4px;">
+              <span class="material-symbols-rounded" style="font-size:16px;">lightbulb</span>
+              Nguyên lý:
+            </strong>
+            Số lượng xe trong bãi được cập nhật tức thời theo công thức:<br>
             <code>Số xe hiện có = (Tổng lượt xe VÀO) - (Tổng lượt xe RA)</code>
           </div>
         </div>
 
         <!-- Trạm Cổng Ra -->
-        <div class="road-block" style="border-color:#f59e0b;">
-          <strong style="color:#f59e0b;">LỐI RA (OUT)</strong>
-          <div style="margin:12px 0; font-size:0.8rem; color:#cbd5e1;">
+        <div class="road-block" style="border: 2px solid var(--warning); background: #FFFFFF; color: var(--text-main);">
+          <strong style="color:var(--warning); display:flex; align-items:center; justify-content:center; gap:6px;">
+            <span class="material-symbols-rounded">logout</span>
+            LỐI RA (OUT)
+          </strong>
+          <div style="margin:12px 0; font-size:0.8rem; color:var(--text-muted); text-align:left;">
             <strong>1. Mắt Cảm Biến IR #2 (GPIO 14):</strong><br>
             Đặt trước cổng ra để phát hiện xe tới cổng thanh toán.<br><br>
             <strong>2. Servo MG90S #2 (GPIO 19):</strong><br>
             Mở 90° cho xe ra rồi tự động đóng lại sau 3.5 giây.
           </div>
-          <div style="color:#64748b; font-size:0.8rem;">➡ Xe rời khỏi bãi ➡</div>
+          <div style="color:var(--warning); font-size:0.8rem; font-weight:700;">➡ Xe rời khỏi bãi ➡</div>
         </div>
       </div>
     </div>
@@ -165,42 +226,45 @@
   <!-- PHẦN 3: BẢNG NỐI DÂY CHI TIẾT -->
   <section class="section-card">
     <div class="section-title">
-      <span>🔌 BẢNG ĐẤU DÂY PHẦN CỨNG CHI TIẾT (ESP32)</span>
+      <span style="display:flex; align-items:center; gap:8px;">
+        <span class="material-symbols-rounded" style="color:var(--primary);">electrical_services</span>
+        BẢNG ĐẤU DÂY PHẦN CỨNG CHI TIẾT (ESP32)
+      </span>
     </div>
 
     <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
       <thead>
-        <tr style="background:#0f172a; text-align:left;">
-          <th style="padding:10px; border:1px solid #334155;">Thiết bị</th>
-          <th style="padding:10px; border:1px solid #334155;">Chân thiết bị</th>
-          <th style="padding:10px; border:1px solid #334155;">Nối vào NodeMCU-32S</th>
-          <th style="padding:10px; border:1px solid #334155;">Nhiệm vụ</th>
+        <tr style="background:#F1F5F9; text-align:left; color:var(--text-main);">
+          <th style="padding:10px; border:1px solid var(--border-color);">Thiết bị</th>
+          <th style="padding:10px; border:1px solid var(--border-color);">Chân thiết bị</th>
+          <th style="padding:10px; border:1px solid var(--border-color);">Nối vào NodeMCU-32S</th>
+          <th style="padding:10px; border:1px solid var(--border-color);">Nhiệm vụ</th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td style="padding:10px; border:1px solid #334155;"><strong>Cảm biến IR Vào</strong></td>
-          <td style="padding:10px; border:1px solid #334155;">VCC / GND / <strong>OUT</strong></td>
-          <td style="padding:10px; border:1px solid #334155;">3V3 / GND / <strong style="color:#38bdf8;">GPIO 13</strong></td>
-          <td style="padding:10px; border:1px solid #334155;">Phát hiện xe vào -> Đếm +1</td>
+          <td style="padding:10px; border:1px solid var(--border-color);"><strong>Cảm biến IR Vào</strong></td>
+          <td style="padding:10px; border:1px solid var(--border-color);">VCC / GND / <strong>OUT</strong></td>
+          <td style="padding:10px; border:1px solid var(--border-color);">3V3 / GND / <strong style="color:var(--primary);">GPIO 13</strong></td>
+          <td style="padding:10px; border:1px solid var(--border-color);">Phát hiện xe vào -> Đếm +1</td>
         </tr>
         <tr>
-          <td style="padding:10px; border:1px solid #334155;"><strong>Servo Cổng Vào</strong></td>
-          <td style="padding:10px; border:1px solid #334155;">Nâu / Đỏ / <strong>Cam</strong></td>
-          <td style="padding:10px; border:1px solid #334155;">GND / VIN (5V) / <strong style="color:#38bdf8;">GPIO 18</strong></td>
-          <td style="padding:10px; border:1px solid #334155;">Mở 90° khi còn chỗ, Khóa 0° khi đầy</td>
+          <td style="padding:10px; border:1px solid var(--border-color);"><strong>Servo Cổng Vào</strong></td>
+          <td style="padding:10px; border:1px solid var(--border-color);">Nâu / Đỏ / <strong>Cam</strong></td>
+          <td style="padding:10px; border:1px solid var(--border-color);">GND / VIN (5V) / <strong style="color:var(--primary);">GPIO 18</strong></td>
+          <td style="padding:10px; border:1px solid var(--border-color);">Mở 90° khi còn chỗ, Khóa 0° khi đầy</td>
         </tr>
         <tr>
-          <td style="padding:10px; border:1px solid #334155;"><strong>Cảm biến IR Ra</strong></td>
-          <td style="padding:10px; border:1px solid #334155;">VCC / GND / <strong>OUT</strong></td>
-          <td style="padding:10px; border:1px solid #334155;">3V3 / GND / <strong style="color:#f59e0b;">GPIO 14</strong></td>
-          <td style="padding:10px; border:1px solid #334155;">Phát hiện xe ra -> Đếm -1</td>
+          <td style="padding:10px; border:1px solid var(--border-color);"><strong>Cảm biến IR Ra</strong></td>
+          <td style="padding:10px; border:1px solid var(--border-color);">VCC / GND / <strong>OUT</strong></td>
+          <td style="padding:10px; border:1px solid var(--border-color);">3V3 / GND / <strong style="color:var(--warning);">GPIO 14</strong></td>
+          <td style="padding:10px; border:1px solid var(--border-color);">Phát hiện xe ra -> Đếm -1</td>
         </tr>
         <tr>
-          <td style="padding:10px; border:1px solid #334155;"><strong>Servo Cổng Ra</strong></td>
-          <td style="padding:10px; border:1px solid #334155;">Nâu / Đỏ / <strong>Cam</strong></td>
-          <td style="padding:10px; border:1px solid #334155;">GND / VIN (5V) / <strong style="color:#f59e0b;">GPIO 19</strong></td>
-          <td style="padding:10px; border:1px solid #334155;">Mở 90° cho xe ra -> tự đóng sau 3.5s</td>
+          <td style="padding:10px; border:1px solid var(--border-color);"><strong>Servo Cổng Ra</strong></td>
+          <td style="padding:10px; border:1px solid var(--border-color);">Nâu / Đỏ / <strong>Cam</strong></td>
+          <td style="padding:10px; border:1px solid var(--border-color);">GND / VIN (5V) / <strong style="color:var(--warning);">GPIO 19</strong></td>
+          <td style="padding:10px; border:1px solid var(--border-color);">Mở 90° cho xe ra -> tự đóng sau 3.5s</td>
         </tr>
       </tbody>
     </table>

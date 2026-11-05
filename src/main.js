@@ -99,8 +99,6 @@ export function simulateCarLeave() {
 
   const occupiedSlot = state.slots.find(s => s.occupied);
   if (occupiedSlot) {
-    const fee = calculateParkingFee(occupiedSlot.entryTime);
-    state.totalRevenue += fee;
     occupiedSlot.occupied = false;
     occupiedSlot.entryTime = null;
   }
@@ -121,8 +119,6 @@ export function resetAllSlots() {
     slot.occupied = false;
     slot.entryTime = null;
   });
-  state.totalRevenue = 0;
-  state.totalEntriesToday = 0;
   addLog("Đã đặt lại bộ đếm xe về 0", 'info');
   renderSlots();
 
@@ -262,15 +258,13 @@ function setupEventListeners() {
     if (e.target === dom.modal) closeModal();
   });
 
-  // Thanh toán ô đỗ từ Modal
+  // Cho xe rời ô đỗ từ Modal
   dom.modalCheckOutBtn?.addEventListener('click', () => {
     if (!state.selectedSlot || !state.selectedSlot.occupied) return;
     const slot = state.selectedSlot;
-    const fee = calculateParkingFee(slot.entryTime);
 
-    state.totalRevenue += fee;
     if (state.currentCount > 0) state.currentCount--;
-    addLog(`Xe rời ô ${slot.label}. Thu phí: ${formatCurrency(fee)} (Còn ${state.currentCount}/${state.maxCapacity} xe)`, 'out');
+    addLog(`Xe rời ô ${slot.label} (Còn lại ${state.currentCount}/${state.maxCapacity} xe trong bãi)`, 'out');
 
     slot.occupied = false;
     slot.entryTime = null;

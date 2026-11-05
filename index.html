@@ -3,98 +3,91 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart Parking IoT - Giám sát bãi đỗ xe ESP32</title>
+  <title>Hệ Thống Giám Sát Bãi Đỗ Xe ESP32</title>
+
+  <!-- Google Fonts: Manrope & Material Symbols Rounded (CoinTap Design System) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
   <link rel="stylesheet" href="/src/style.css">
 </head>
 <body>
-  <!-- Header -->
+  <!-- Header / Topbar -->
   <header class="navbar">
     <div class="nav-brand">
-      <div class="logo-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.5 2.8C2.1 10.7 2 10.8 2 11v5c0 .6.4 1 1 1h2"></path>
-          <circle cx="7" cy="17" r="2"></circle>
-          <path d="M9 17h6"></path>
-          <circle cx="17" cy="17" r="2"></circle>
-        </svg>
+      <div class="brand-logo-wrap">
+        <span class="material-symbols-rounded" style="font-size:26px;">local_parking</span>
       </div>
-      <div>
+      <div class="brand-title">
         <h1>HỆ THỐNG BÃI ĐỖ XE THÔNG MINH</h1>
-        <p class="subtitle">Giám sát & Điều khiển Thời gian thực qua ESP32 IoT</p>
       </div>
     </div>
 
     <div class="nav-status-group">
       <!-- Printable schematic link -->
-      <a href="so_do_ket_noi.html" target="_blank" class="btn btn-outline btn-sm" style="text-decoration:none;">🖨️ In sơ đồ đấu dây</a>
+      <a href="so_do_ket_noi.html" target="_blank" class="btn btn-outline btn-sm">
+        <span class="material-symbols-rounded" style="font-size:18px;">print</span>
+        In sơ đồ đấu dây
+      </a>
 
       <!-- Connection Status Badge -->
-      <div id="connectionBadge" class="status-badge disconnected">
+      <div id="connectionBadge" class="status-badge demo">
         <span class="status-dot"></span>
-        <span id="connectionText">Chưa kết nối ESP32</span>
+        <span id="connectionText">Chế độ Giả lập (Demo Mode)</span>
       </div>
 
-      <div class="digital-clock" id="digitalClock">--:--:--</div>
+      <div class="digital-clock">
+        <span class="material-symbols-rounded" style="font-size:18px; color:var(--primary);">schedule</span>
+        <span id="digitalClock">--:--:--</span>
+      </div>
     </div>
   </header>
 
   <!-- Main Content Layout -->
   <div class="container">
-    <!-- Top Statistics Cards -->
+    <!-- Top Statistics Cards (CoinTap Admin Style - 3 Cards) -->
     <section class="stats-grid">
-      <div class="card stat-card total-card">
-        <div class="stat-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="3" width="18" height="18" rx="2"></rect>
-            <path d="M3 9h18M9 21V9"></path>
-          </svg>
+      <!-- Card 1: Sức chứa tối đa -->
+      <div class="stat-card purple">
+        <div class="stat-header">
+          <div class="stat-icon purple">
+            <span class="material-symbols-rounded">warehouse</span>
+          </div>
+          <span class="stat-badge purple">Cài đặt Web</span>
         </div>
-        <div class="stat-info">
-          <h3>Sức chứa tối đa (Max)</h3>
-          <div class="stat-number" id="statMaxCapacity">10</div>
-          <span class="stat-desc">Cài đặt trên Web</span>
-        </div>
-      </div>
-
-      <div class="card stat-card available-card">
-        <div class="stat-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="20 6 9 17 4 12"></polyline>
-          </svg>
-        </div>
-        <div class="stat-info">
-          <h3>Chỗ còn trống</h3>
-          <div class="stat-number" id="statAvailableSlots">8</div>
-          <span class="stat-desc text-success" id="statAvailablePercent">Còn chỗ vào bãi</span>
+        <div>
+          <div class="stat-value" id="statMaxCapacity">10</div>
+          <div class="stat-label">Sức chứa tối đa (Max)</div>
         </div>
       </div>
 
-      <div class="card stat-card occupied-card">
-        <div class="stat-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="8" x2="12" y2="12"></line>
-            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-          </svg>
+      <!-- Card 2: Chỗ còn trống -->
+      <div class="stat-card green">
+        <div class="stat-header">
+          <div class="stat-icon green">
+            <span class="material-symbols-rounded">check_circle</span>
+          </div>
+          <span class="stat-badge green" id="statAvailablePercent">Còn chỗ vào bãi</span>
         </div>
-        <div class="stat-info">
-          <h3>Số xe trong bãi</h3>
-          <div class="stat-number" id="statOccupiedSlots">2</div>
-          <span class="stat-desc text-danger" id="statOccupiedPercent">Đếm tự động qua IR</span>
+        <div>
+          <div class="stat-value text-success" id="statAvailableSlots">8</div>
+          <div class="stat-label">Chỗ còn trống</div>
         </div>
       </div>
 
-      <div class="card stat-card revenue-card">
-        <div class="stat-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="12" y1="1" x2="12" y2="23"></line>
-            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-          </svg>
+      <!-- Card 3: Số xe trong bãi -->
+      <div class="stat-card blue">
+        <div class="stat-header">
+          <div class="stat-icon blue">
+            <span class="material-symbols-rounded">directions_car</span>
+          </div>
+          <span class="stat-badge blue" id="statOccupiedPercent">Đếm tự động qua IR</span>
         </div>
-        <div class="stat-info">
-          <h3>Doanh thu tạm tính</h3>
-          <div class="stat-number" id="statRevenue">0đ</div>
-          <span class="stat-desc" id="statTotalEntries">0 lượt xe hôm nay</span>
+        <div>
+          <div class="stat-value text-danger" id="statOccupiedSlots">2</div>
+          <div class="stat-label">Số xe trong bãi</div>
         </div>
       </div>
     </section>
@@ -116,7 +109,10 @@
         <div class="card parking-panel">
           <div class="panel-header">
             <div>
-              <h2>Sơ đồ bãi xe trực quan</h2>
+              <h2>
+                <span class="material-symbols-rounded" style="color:var(--primary); font-size:24px;">grid_view</span>
+                Sơ đồ bãi xe trực quan
+              </h2>
               <p class="panel-subtitle">Hệ thống đếm xe tự động (+1 khi vào, -1 khi ra) & Khóa barie khi đầy</p>
             </div>
             <!-- Legend -->
@@ -132,11 +128,14 @@
             <div class="lot-road entry-road">
               <div class="gate-box" id="inGateBox">
                 <div>
-                  <span class="gate-label">CỔNG VÀO (IN)</span>
-                  <small style="display:block; font-size:0.65rem; color:#94a3b8;">IR: GPIO 13 | Servo: GPIO 18</small>
+                  <span class="gate-label">
+                    <span class="material-symbols-rounded" style="color:var(--primary); font-size:16px;">login</span>
+                    CỔNG VÀO (IN)
+                  </span>
+                  <small style="display:block; font-size:0.7rem; color:var(--text-light); margin-top:2px;">IR: GPIO 13 | Servo: GPIO 18</small>
                 </div>
                 <div class="barrier-bar" id="inBarrier"></div>
-                <span class="barrier-status" id="inBarrierText">ĐANG ĐÓNG</span>
+                <span class="barrier-status" id="inBarrierText">ĐANG ĐÓNG (0°)</span>
               </div>
               <div class="road-lane">
                 <span class="road-arrow">➡ LỐI VÀO (CẢM BIẾN ĐẾM +1) ➡</span>
@@ -146,7 +145,10 @@
             <!-- Slots Grid Area -->
             <div class="slots-container">
               <div class="parking-zone">
-                <div class="zone-title">SƠ ĐỒ Ô ĐỖ XE (5 Ô / HÀNG)</div>
+                <div class="zone-title">
+                  <span class="material-symbols-rounded" style="font-size:18px;">local_parking</span>
+                  SƠ ĐỒ Ô ĐỖ XE (5 Ô / HÀNG)
+                </div>
                 <div class="slots-grid" id="slotsGrid">
                   <!-- Dynamic render via JavaScript -->
                 </div>
@@ -160,11 +162,14 @@
               </div>
               <div class="gate-box" id="outGateBox">
                 <div>
-                  <span class="gate-label">CỔNG RA (OUT)</span>
-                  <small style="display:block; font-size:0.65rem; color:#94a3b8;">IR: GPIO 14 | Servo: GPIO 19</small>
+                  <span class="gate-label">
+                    <span class="material-symbols-rounded" style="color:var(--warning); font-size:16px;">logout</span>
+                    CỔNG RA (OUT)
+                  </span>
+                  <small style="display:block; font-size:0.7rem; color:var(--text-light); margin-top:2px;">IR: GPIO 14 | Servo: GPIO 19</small>
                 </div>
                 <div class="barrier-bar" id="outBarrier"></div>
-                <span class="barrier-status" id="outBarrierText">ĐANG ĐÓNG</span>
+                <span class="barrier-status" id="outBarrierText">ĐANG ĐÓNG (0°)</span>
               </div>
             </div>
           </div>
@@ -173,25 +178,40 @@
         <!-- Barrier / Gate Controls -->
         <div class="card gate-control-panel">
           <div class="panel-header">
-            <h3>Điều khiển cổng Barie (Servo)</h3>
+            <h3>
+              <span class="material-symbols-rounded" style="color:var(--primary); font-size:22px;">fence</span>
+              Điều khiển cổng Barie (Servo)
+            </h3>
             <span class="badge-sub">Gửi tín hiệu trực tiếp tới ESP32</span>
           </div>
           <div class="gate-buttons-row">
             <div class="gate-btn-group">
-              <span class="btn-group-label">Cổng vào (In-Gate):</span>
+              <span class="btn-group-label">
+                <span class="material-symbols-rounded" style="color:var(--primary); font-size:18px;">login</span>
+                Cổng vào (In-Gate):
+              </span>
               <button class="btn btn-primary" id="btnOpenInGate">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                <span class="material-symbols-rounded">lock_open</span>
                 Mở cổng vào
               </button>
-              <button class="btn btn-outline" id="btnCloseInGate">Đóng cổng vào</button>
+              <button class="btn btn-outline" id="btnCloseInGate">
+                <span class="material-symbols-rounded">lock</span>
+                Đóng cổng vào
+              </button>
             </div>
             <div class="gate-btn-group">
-              <span class="btn-group-label">Cổng ra (Out-Gate):</span>
+              <span class="btn-group-label">
+                <span class="material-symbols-rounded" style="color:var(--warning); font-size:18px;">logout</span>
+                Cổng ra (Out-Gate):
+              </span>
               <button class="btn btn-warning" id="btnOpenOutGate">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                <span class="material-symbols-rounded">lock_open</span>
                 Mở cổng ra
               </button>
-              <button class="btn btn-outline" id="btnCloseOutGate">Đóng cổng ra</button>
+              <button class="btn btn-outline" id="btnCloseOutGate">
+                <span class="material-symbols-rounded">lock</span>
+                Đóng cổng ra
+              </button>
             </div>
           </div>
         </div>
@@ -202,24 +222,30 @@
         <!-- Capacity Limit Settings -->
         <div class="card capacity-panel">
           <div class="panel-header">
-            <h3>Cài đặt sức chứa bãi xe</h3>
+            <h3>
+              <span class="material-symbols-rounded" style="color:var(--primary); font-size:22px;">tune</span>
+              Cài đặt sức chứa bãi xe
+            </h3>
             <span class="badge-sub">Auto Lock Gate</span>
           </div>
           <div class="form-group">
             <label for="inputMaxCapacity">Giới hạn số lượng xe tối đa (Max):</label>
             <div class="input-with-button">
               <input type="number" id="inputMaxCapacity" class="form-input" min="1" max="50" value="10">
-              <button class="btn btn-primary" id="btnUpdateCapacity">Lưu giới hạn</button>
+              <button class="btn btn-primary" id="btnUpdateCapacity">
+                <span class="material-symbols-rounded" style="font-size:18px;">save</span>
+                Lưu
+              </button>
             </div>
             <small class="helper-text">Hệ thống ESP32 sẽ tự động KHÓA Barie Cổng Vào khi số xe đạt mức này.</small>
           </div>
           <div class="capacity-progress-container">
             <div class="capacity-progress-header">
-              <span style="font-size:0.85rem; color:#94a3b8;">Trạng thái lấp đầy:</span>
-              <strong id="capacityProgressText" style="font-size:0.95rem; color:#38bdf8;">2 / 10 xe</strong>
+              <span style="font-size:0.85rem; color:var(--text-muted);">Trạng thái lấp đầy:</span>
+              <strong id="capacityProgressText" style="font-size:0.95rem; color:var(--primary);">2 / 10 xe</strong>
             </div>
-            <div class="progress-bar-bg" style="height: 10px; background: #0f172a; border-radius: 5px; overflow: hidden; margin-top: 6px; border: 1px solid #334155;">
-              <div id="capacityProgressFill" style="height: 100%; width: 20%; background: #10b981; transition: width 0.3s ease, background-color 0.3s ease;"></div>
+            <div class="progress-bar-bg" style="height: 10px; background: #E2E8F0; border-radius: 5px; overflow: hidden; margin-top: 8px;">
+              <div id="capacityProgressFill" style="height: 100%; width: 20%; background: var(--success); transition: width 0.3s ease, background-color 0.3s ease;"></div>
             </div>
           </div>
         </div>
@@ -227,14 +253,20 @@
         <!-- ESP32 Connection Box -->
         <div class="card config-panel">
           <div class="panel-header">
-            <h3>Cấu hình kết nối ESP32</h3>
+            <h3>
+              <span class="material-symbols-rounded" style="color:var(--primary); font-size:22px;">wifi</span>
+              Cấu hình kết nối ESP32
+            </h3>
           </div>
           
           <div class="form-group">
             <label for="espIpInput">Địa chỉ IP của ESP32:</label>
             <div class="input-with-button">
               <input type="text" id="espIpInput" class="form-input" placeholder="VD: 192.168.1.150" value="192.168.1.150">
-              <button class="btn btn-success" id="btnConnectEsp">Kết nối</button>
+              <button class="btn btn-success" id="btnConnectEsp">
+                <span class="material-symbols-rounded" style="font-size:18px;">link</span>
+                Kết nối
+              </button>
             </div>
             <small class="helper-text">Nhập IP do WiFi cấp cho ESP32 (hiển thị trên Serial Monitor)</small>
           </div>
@@ -252,9 +284,18 @@
             </div>
 
             <div class="demo-actions" id="demoActions">
-              <button class="btn btn-sm btn-outline" id="btnSimulateEnter">+ Giả lập xe vào</button>
-              <button class="btn btn-sm btn-outline" id="btnSimulateLeave">- Giả lập xe ra</button>
-              <button class="btn btn-sm btn-danger-outline" id="btnResetSlots">Đặt lại bãi</button>
+              <button class="btn btn-sm btn-outline" id="btnSimulateEnter">
+                <span class="material-symbols-rounded" style="font-size:17px; color:var(--primary);">add_circle</span>
+                + Xe vào
+              </button>
+              <button class="btn btn-sm btn-outline" id="btnSimulateLeave">
+                <span class="material-symbols-rounded" style="font-size:17px; color:var(--warning);">remove_circle</span>
+                - Xe ra
+              </button>
+              <button class="btn btn-sm btn-danger-outline" id="btnResetSlots">
+                <span class="material-symbols-rounded" style="font-size:17px;">restart_alt</span>
+                Đặt lại
+              </button>
             </div>
           </div>
         </div>
@@ -262,27 +303,20 @@
         <!-- Live Activity Log -->
         <div class="card log-panel">
           <div class="panel-header">
-            <h3>Nhật ký xe ra vào</h3>
-            <button class="btn-text" id="btnClearLog">Xóa lịch sử</button>
+            <h3>
+              <span class="material-symbols-rounded" style="color:var(--primary); font-size:22px;">history</span>
+              Nhật ký xe ra vào
+            </h3>
+            <button class="btn-text" id="btnClearLog">
+              <span class="material-symbols-rounded" style="font-size:16px;">delete_sweep</span>
+              Xóa
+            </button>
           </div>
           <div class="log-list" id="activityLogList">
             <!-- Logs dynamically added -->
           </div>
         </div>
 
-        <!-- Pricing Guide Card -->
-        <div class="card pricing-panel">
-          <h4>Bảng giá đỗ xe tham chiếu</h4>
-          <div class="pricing-table">
-            <div class="price-row">
-              <span>Giá mở cửa (30 phút đầu)</span>
-              <strong>10.000 VNĐ</strong>
-            </div>
-            <div class="price-row">
-              <span>Mỗi giờ tiếp theo</span>
-              <strong>15.000 VNĐ / giờ</strong>
-            </div>
-          </div>
         </div>
       </div>
     </main>
@@ -292,8 +326,13 @@
   <div class="modal" id="slotDetailModal">
     <div class="modal-content">
       <div class="modal-header">
-        <h3 id="modalSlotTitle">Chi tiết ô đỗ A-01</h3>
-        <button class="modal-close-btn" id="modalCloseBtn">&times;</button>
+        <h3 id="modalSlotTitle">
+          <span class="material-symbols-rounded" style="color:var(--primary);">info</span>
+          Chi tiết ô đỗ Ô-01
+        </h3>
+        <button class="modal-close-btn" id="modalCloseBtn">
+          <span class="material-symbols-rounded">close</span>
+        </button>
       </div>
       <div class="modal-body">
         <div class="detail-row">
@@ -302,24 +341,26 @@
         </div>
         <div class="detail-row">
           <span class="detail-label">Cảm biến ESP32:</span>
-          <span id="modalSensorVal">IR Sensor (D14)</span>
+          <span id="modalSensorVal" style="font-weight:700; color:var(--text-main);">IR Sensor (D14)</span>
         </div>
         <div class="detail-row">
           <span class="detail-label">Giờ vào bãi:</span>
-          <span id="modalCheckinTime">--</span>
+          <span id="modalCheckinTime" style="font-weight:700; color:var(--text-main);">--</span>
         </div>
         <div class="detail-row">
           <span class="detail-label">Thời gian đã đỗ:</span>
-          <span id="modalDuration">--</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">Tiền cước tạm tính:</span>
-          <strong id="modalFee" class="text-danger font-large">0 VNĐ</strong>
+          <span id="modalDuration" style="font-weight:700; color:var(--primary);">--</span>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-outline" id="modalDismissBtn">Đóng</button>
-        <button class="btn btn-danger" id="modalCheckOutBtn">Thanh toán & Cho xe ra</button>
+        <button class="btn btn-outline" id="modalDismissBtn">
+          <span class="material-symbols-rounded" style="font-size:18px;">cancel</span>
+          Đóng
+        </button>
+        <button class="btn btn-danger" id="modalCheckOutBtn">
+          <span class="material-symbols-rounded" style="font-size:18px;">logout</span>
+          Cho xe ra khỏi bãi
+        </button>
       </div>
     </div>
   </div>

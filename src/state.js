@@ -40,8 +40,6 @@ export const state = {
   pollInterval: null,
   maxCapacity: 10,     // Mặc định 10 ô đỗ
   currentCount: 2,     // 2 xe khởi tạo đang đỗ
-  totalRevenue: 30000,
-  totalEntriesToday: 2,
   selectedSlot: null,
   gates: {
     in: false,  // false: closed (0°), true: open (90°)
