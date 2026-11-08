@@ -39,16 +39,13 @@ export const state = {
   isDemoMode: true,
   pollInterval: null,
   maxCapacity: 10,     // Mặc định 10 ô đỗ
-  currentCount: 2,     // 2 xe khởi tạo đang đỗ
+  currentCount: 0,     // 0 xe khởi tạo ban đầu
   selectedSlot: null,
   gates: {
     in: false,  // false: closed (0°), true: open (90°)
     out: false
   },
-  slots: createDefaultSlots(10, [
-    { id: "S1", label: "Ô-01", pin: "GPIO 13", occupied: true, entryTime: new Date(Date.now() - 35 * 60 * 1000) },
-    { id: "S2", label: "Ô-02", pin: "GPIO 14", occupied: true, entryTime: new Date(Date.now() - 75 * 60 * 1000) }
-  ])
+  slots: createDefaultSlots(10, [])
 };
 
 /**

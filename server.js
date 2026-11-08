@@ -21,7 +21,7 @@ app.use(express.urlencoded({ extended: true }));
 // In-Memory Parking State (Mô phỏng bộ nhớ của hệ thống)
 const parkingState = {
   maxCapacity: 10,
-  currentCount: 2,
+  currentCount: 0,
   gates: {
     in: false,  // false: 0 deg (close), true: 90 deg (open)
     out: false
@@ -108,6 +108,28 @@ app.post('/api/gate', (req, res) => {
     gate: gate,
     action: action,
     gates: parkingState.gates
+  });
+});
+
+/**
+ * POST /api/set-count?count=X
+ * Điều chỉnh số xe hiện có trong bãi
+ */
+app.post('/api/set-count', (req, res) => {
+  const count = parseInt(req.query.count || req.body.count, 10);
+  if (isNaN(count) || count < 0) {
+    return res.status(400).json({ error: 'Số xe không hợp lệ (>= 0)' });
+  }
+
+  parkingState.currentCount = count;
+  parkingState.lastUpdate = new Date().toISOString();
+  console.log(`[CẤU HÌNH] Đã điều chỉnh số xe trong bãi: ${parkingState.currentCount} xe`);
+
+  res.json({
+    status: 'success',
+    message: `Đã cập nhật số xe: ${count} xe`,
+    currentCount: parkingState.currentCount,
+    isFull: parkingState.currentCount >= parkingState.maxCapacity
   });
 });
 

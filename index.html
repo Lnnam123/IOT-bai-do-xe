@@ -72,7 +72,7 @@
           <span class="stat-badge green" id="statAvailablePercent">Còn chỗ vào bãi</span>
         </div>
         <div>
-          <div class="stat-value text-success" id="statAvailableSlots">8</div>
+          <div class="stat-value text-success" id="statAvailableSlots">10</div>
           <div class="stat-label">Chỗ còn trống</div>
         </div>
       </div>
@@ -86,7 +86,7 @@
           <span class="stat-badge blue" id="statOccupiedPercent">Đếm tự động qua IR</span>
         </div>
         <div>
-          <div class="stat-value text-danger" id="statOccupiedSlots">2</div>
+          <div class="stat-value text-danger" id="statOccupiedSlots">0</div>
           <div class="stat-label">Số xe trong bãi</div>
         </div>
       </div>
@@ -132,7 +132,7 @@
                     <span class="material-symbols-rounded" style="color:var(--primary); font-size:16px;">login</span>
                     CỔNG VÀO (IN)
                   </span>
-                  <small style="display:block; font-size:0.7rem; color:var(--text-light); margin-top:2px;">IR: GPIO 13 | Servo: GPIO 18</small>
+                  <small style="display:block; font-size:0.7rem; color:var(--text-light); margin-top:2px;">IR: GPIO 2 (D2) | Servo: GPIO 18 (D18)</small>
                 </div>
                 <div class="barrier-bar" id="inBarrier"></div>
                 <span class="barrier-status" id="inBarrierText">ĐANG ĐÓNG (0°)</span>
@@ -166,7 +166,7 @@
                     <span class="material-symbols-rounded" style="color:var(--warning); font-size:16px;">logout</span>
                     CỔNG RA (OUT)
                   </span>
-                  <small style="display:block; font-size:0.7rem; color:var(--text-light); margin-top:2px;">IR: GPIO 14 | Servo: GPIO 19</small>
+                  <small style="display:block; font-size:0.7rem; color:var(--text-light); margin-top:2px;">IR: GPIO 4 (D4) | Servo: GPIO 19 (D19)</small>
                 </div>
                 <div class="barrier-bar" id="outBarrier"></div>
                 <span class="barrier-status" id="outBarrierText">ĐANG ĐÓNG (0°)</span>
@@ -239,13 +239,27 @@
             </div>
             <small class="helper-text">Hệ thống ESP32 sẽ tự động KHÓA Barie Cổng Vào khi số xe đạt mức này.</small>
           </div>
+
+          <!-- Điều chỉnh số xe thực tế trong bãi -->
+          <div class="form-group" style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border-color);">
+            <label for="inputCurrentCount">Số xe hiện có trong bãi:</label>
+            <div class="input-with-button">
+              <input type="number" id="inputCurrentCount" class="form-input" min="0" max="50" value="0">
+              <button class="btn btn-primary" id="btnUpdateCurrentCount">
+                <span class="material-symbols-rounded" style="font-size:18px;">sync</span>
+                Cập nhật
+              </button>
+            </div>
+            <small class="helper-text">Nhập số xe và nhấn "Cập nhật" để đồng bộ trực tiếp xuống mạch ESP32.</small>
+          </div>
+
           <div class="capacity-progress-container">
             <div class="capacity-progress-header">
               <span style="font-size:0.85rem; color:var(--text-muted);">Trạng thái lấp đầy:</span>
-              <strong id="capacityProgressText" style="font-size:0.95rem; color:var(--primary);">2 / 10 xe</strong>
+              <strong id="capacityProgressText" style="font-size:0.95rem; color:var(--primary);">0 / 10 xe</strong>
             </div>
             <div class="progress-bar-bg" style="height: 10px; background: #E2E8F0; border-radius: 5px; overflow: hidden; margin-top: 8px;">
-              <div id="capacityProgressFill" style="height: 100%; width: 20%; background: var(--success); transition: width 0.3s ease, background-color 0.3s ease;"></div>
+              <div id="capacityProgressFill" style="height: 100%; width: 0%; background: var(--success); transition: width 0.3s ease, background-color 0.3s ease;"></div>
             </div>
           </div>
         </div>
@@ -262,7 +276,7 @@
           <div class="form-group">
             <label for="espIpInput">Địa chỉ IP của ESP32:</label>
             <div class="input-with-button">
-              <input type="text" id="espIpInput" class="form-input" placeholder="VD: 192.168.1.150" value="192.168.1.150">
+              <input type="text" id="espIpInput" class="form-input" placeholder="VD: 192.168.1.150 hoặc baidoxe.local" value="192.168.1.150">
               <button class="btn btn-success" id="btnConnectEsp">
                 <span class="material-symbols-rounded" style="font-size:18px;">link</span>
                 Kết nối

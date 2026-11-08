@@ -17,6 +17,8 @@ export const dom = {
 
   inputMaxCapacity: document.getElementById("inputMaxCapacity"),
   btnUpdateCapacity: document.getElementById("btnUpdateCapacity"),
+  inputCurrentCount: document.getElementById("inputCurrentCount"),
+  btnUpdateCurrentCount: document.getElementById("btnUpdateCurrentCount"),
   capacityProgressText: document.getElementById("capacityProgressText"),
   capacityProgressFill: document.getElementById("capacityProgressFill"),
   fullParkingAlert: document.getElementById("fullParkingAlert"),
@@ -123,12 +125,9 @@ export function renderSlots() {
 
     if (slot.occupied) {
       bodyContent = `
-        <div class="car-graphic">
-          <div class="car-windshield"></div>
-          <div class="car-roof"></div>
-          <div class="car-rear-window"></div>
-          <div class="car-lights top"></div>
-          <div class="car-lights bottom"></div>
+        <div class="occupied-placeholder">
+          <span class="material-symbols-rounded occupied-car-icon">directions_car</span>
+          <span class="occupied-text">CÓ XE ĐỖ</span>
         </div>
       `;
 

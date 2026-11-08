@@ -610,13 +610,14 @@ textarea {
 }
 
 .parking-slot.occupied {
-  border-color: rgba(239, 68, 68, 0.4);
-  background: linear-gradient(180deg, #FEF2F2 0%, #FFFFFF 100%);
+  border: 2px solid #EF4444 !important;
+  background: #FFF5F5 !important;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.16);
 }
 
 .parking-slot.occupied:hover {
-  border-color: var(--danger);
-  box-shadow: 0 6px 18px rgba(239, 68, 68, 0.22);
+  border-color: #DC2626 !important;
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.28);
 }
 
 .slot-header {
@@ -667,6 +668,36 @@ textarea {
   flex-direction: column;
   align-items: center;
   gap: 2px;
+}
+
+.occupied-placeholder {
+  text-align: center;
+  color: #EF4444;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  border: 1.5px dashed rgba(239, 68, 68, 0.5);
+  padding: 8px 6px;
+  width: 95%;
+  border-radius: 8px;
+  background: #FEE2E2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  animation: carEnter 0.35s ease-out;
+}
+
+.occupied-car-icon {
+  font-size: 30px !important;
+  color: #DC2626 !important;
+}
+
+.occupied-text {
+  font-size: 11px;
+  font-weight: 800;
+  color: #B91C1C;
+  letter-spacing: 0.5px;
 }
 
 .car-graphic {

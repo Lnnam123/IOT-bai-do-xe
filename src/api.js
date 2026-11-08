@@ -93,6 +93,31 @@ export async function sendGateCommand(ip, gate, action) {
 }
 
 /**
+ * Điều chỉnh số lượng xe hiện có trong bãi tới ESP32
+ * @param {string} ip
+ * @param {number} count
+ */
+export async function sendCarCount(ip, count) {
+  try {
+    const res = await fetch(`http://${ip}/api/set-count?count=${count}`, {
+      method: 'POST',
+      mode: 'cors'
+    });
+    if (res.ok) return true;
+  } catch {
+    try {
+      const proxyRes = await fetch(`/api/esp32/proxy?target=${encodeURIComponent(`http://${ip}/api/set-count?count=${count}`)}`, {
+        method: 'POST'
+      });
+      return proxyRes.ok;
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
+/**
  * Đặt lại số đếm xe về 0 trên ESP32
  * @param {string} ip
  */

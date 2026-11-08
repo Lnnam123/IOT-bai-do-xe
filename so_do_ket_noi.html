@@ -78,7 +78,7 @@
               <span class="material-symbols-rounded">login</span>
               LỐI VÀO (IN) - CẢM BIẾN ĐẾM +1
             </strong>
-            <span class="tag-pin">IR: GPIO 13 | Servo: GPIO 18</span>
+            <span class="tag-pin">IR: GPIO 2 (D2) | Servo: GPIO 18 (D18)</span>
           </div>
 
           <div class="ir-indicator-row">
@@ -110,7 +110,7 @@
               <span class="material-symbols-rounded">logout</span>
               LỐI RA (OUT) - CẢM BIẾN ĐẾM -1
             </strong>
-            <span class="tag-pin">IR: GPIO 14 | Servo: GPIO 19</span>
+            <span class="tag-pin">IR: GPIO 4 (D4) | Servo: GPIO 19 (D19)</span>
           </div>
 
           <div class="ir-indicator-row">
@@ -245,26 +245,32 @@
         <tr>
           <td style="padding:10px; border:1px solid var(--border-color);"><strong>Cảm biến IR Vào</strong></td>
           <td style="padding:10px; border:1px solid var(--border-color);">VCC / GND / <strong>OUT</strong></td>
-          <td style="padding:10px; border:1px solid var(--border-color);">3V3 / GND / <strong style="color:var(--primary);">GPIO 13</strong></td>
+          <td style="padding:10px; border:1px solid var(--border-color);">3V3 / GND / <strong style="color:var(--primary);">GPIO 2 (D2)</strong></td>
           <td style="padding:10px; border:1px solid var(--border-color);">Phát hiện xe vào -> Đếm +1</td>
         </tr>
         <tr>
           <td style="padding:10px; border:1px solid var(--border-color);"><strong>Servo Cổng Vào</strong></td>
           <td style="padding:10px; border:1px solid var(--border-color);">Nâu / Đỏ / <strong>Cam</strong></td>
-          <td style="padding:10px; border:1px solid var(--border-color);">GND / VIN (5V) / <strong style="color:var(--primary);">GPIO 18</strong></td>
-          <td style="padding:10px; border:1px solid var(--border-color);">Mở 90° khi còn chỗ, Khóa 0° khi đầy</td>
+          <td style="padding:10px; border:1px solid var(--border-color);">GND / VIN (5V) / <strong style="color:var(--primary);">GPIO 18 (D18)</strong></td>
+          <td style="padding:10px; border:1px solid var(--border-color);">Mở dựng đứng (0°), Khóa hạ ngang (90°)</td>
         </tr>
         <tr>
           <td style="padding:10px; border:1px solid var(--border-color);"><strong>Cảm biến IR Ra</strong></td>
           <td style="padding:10px; border:1px solid var(--border-color);">VCC / GND / <strong>OUT</strong></td>
-          <td style="padding:10px; border:1px solid var(--border-color);">3V3 / GND / <strong style="color:var(--warning);">GPIO 14</strong></td>
+          <td style="padding:10px; border:1px solid var(--border-color);">3V3 / GND / <strong style="color:var(--warning);">GPIO 4 (D4)</strong></td>
           <td style="padding:10px; border:1px solid var(--border-color);">Phát hiện xe ra -> Đếm -1</td>
         </tr>
         <tr>
           <td style="padding:10px; border:1px solid var(--border-color);"><strong>Servo Cổng Ra</strong></td>
           <td style="padding:10px; border:1px solid var(--border-color);">Nâu / Đỏ / <strong>Cam</strong></td>
-          <td style="padding:10px; border:1px solid var(--border-color);">GND / VIN (5V) / <strong style="color:var(--warning);">GPIO 19</strong></td>
-          <td style="padding:10px; border:1px solid var(--border-color);">Mở 90° cho xe ra -> tự đóng sau 3.5s</td>
+          <td style="padding:10px; border:1px solid var(--border-color);">GND / VIN (5V) / <strong style="color:var(--warning);">GPIO 19 (D19)</strong></td>
+          <td style="padding:10px; border:1px solid var(--border-color);">Mở dựng đứng (0°) -> tự đóng hạ ngang (90°)</td>
+        </tr>
+        <tr>
+          <td style="padding:10px; border:1px solid var(--border-color);"><strong>Màn hình LCD 1602 I2C</strong></td>
+          <td style="padding:10px; border:1px solid var(--border-color);">GND / VCC / <strong>SDA / SCL</strong></td>
+          <td style="padding:10px; border:1px solid var(--border-color);">GND / VIN (5V) / <strong style="color:#2563EB;">D21 / D22</strong></td>
+          <td style="padding:10px; border:1px solid var(--border-color);">Hiển thị số xe còn trống, thông báo bãi đầy</td>
         </tr>
       </tbody>
     </table>

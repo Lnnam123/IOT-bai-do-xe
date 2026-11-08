@@ -3,14 +3,17 @@
 
 Hệ thống bãi đỗ xe thông minh sử dụng **NodeMCU-32S ESP32**, **2 Cảm biến hồng ngoại IR** và **2 Động cơ Servo MG90S** với các tính năng:
 1. **Đếm xe tự động:**
-   - Xe qua **Cảm biến Vào (GPIO 13)** -> Đếm `+1` -> Mở **Barie Vào (GPIO 18)** -> Tự đóng sau 3.5 giây.
-   - Xe qua **Cảm biến Ra (GPIO 14)** -> Đếm `-1` -> Mở **Barie Ra (GPIO 19)** -> Tự đóng sau 3.5 giây.
+   - Xe qua **Cảm biến Vào (D2 / GPIO 2)** -> Đếm `+1` -> Mở **Barie Vào (D13 / GPIO 13)** -> Tự đóng sau 0.3 giây.
+   - Xe qua **Cảm biến Ra (D4 / GPIO 4)** -> Đếm `-1` -> Mở **Barie Ra (D14 / GPIO 14)** -> Tự đóng sau 0.3 giây.
 2. **Cơ chế chống quá tải (Khóa Barie khi bãi đầy):**
    - Cho phép cài đặt **Sức chứa tối đa (Max Capacity)** ngay trên Web (Ví dụ: 3 xe, 4 xe, 10 xe...).
    - Khi số xe đạt mức tối đa (`currentCount >= maxCapacity`):
      - **Barie Cổng Vào lập tức KHÓA (0 độ)**, từ chối mở khi có xe mới tiến tới.
      - Web và còi/đèn cảnh báo hiển thị: **"🚨 BÃI XE ĐÃ ĐẦY"**.
    - Khi có xe ra khỏi bãi (`-1`) -> Cổng vào tự động mở khóa bình thường!
+3. **Đa nền tảng điều khiển:**
+   - Hỗ trợ **Web Dashboard thời gian thực** (Vite + WebSockets/REST API + mDNS `http://baidoxe.local`).
+   - Hỗ trợ **MIT App Inventor**: `B1`/`T1` (Cổng Vào) và `B2`/`T2` (Cổng Ra) kèm HTTP 200 chống lỗi 1101.
 
 ---
 

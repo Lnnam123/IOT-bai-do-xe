@@ -96,13 +96,13 @@ export function simulateCarArriveIn() {
   }
   updateUi();
 
-  // Tự động đóng sau 3.5 giây
+  // Tự động đóng sau 0.5 giây
   setTimeout(() => {
     isGateInOpen = false;
     if (elArmIn) elArmIn.classList.remove("open");
     logSerial(`[BARIE] Cổng Vào: Đã đóng về 0 độ`);
     updateUi();
-  }, 3500);
+  }, 500);
 }
 
 export function simulateCarArriveOut() {
@@ -118,7 +118,7 @@ export function simulateCarArriveOut() {
   setTimeout(() => {
     if (elLedOut) elLedOut.classList.remove("active");
     if (elTextIrOut) elTextIrOut.textContent = "Cảm biến ra: Không có xe";
-  }, 1500);
+  }, 500);
 
   // Đếm -1 & Mở Servo ra
   simCount--;
@@ -141,7 +141,7 @@ export function simulateCarArriveOut() {
     }
     logSerial(`[BARIE] Cổng Ra: Đã đóng về 0 độ`);
     updateUi();
-  }, 3500);
+  }, 500);
 }
 
 function initSchematic() {

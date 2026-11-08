@@ -1,174 +1,172 @@
 /*
- * ======================================================================================
- * DỰ ÁN: HỆ THỐNG ĐẾM XE & ĐIỀU KHIỂN CỔNG BÃI ĐỖ THÔNG MINH BẰNG ESP32
- * 
- * NGUYÊN LÝ HOẠT ĐỘNG:
- *   1. Cảm biến IR Cổng Vào (GPIO 13): 
- *      - Khi có xe đến: Kiểm tra số lượng xe hiện tại với Giới hạn tối đa (Max Capacity).
- *      - Nếu CÒN CHỖ (< Max): Đếm xe +1, Mở Barie Vào (90 độ), tự đóng sau 3 giây.
- *      - Nếu ĐÃ ĐẦY (>= Max): KHÓA BARIE VÀO (0 độ), từ chối mở, báo động "FULL".
- * 
- *   2. Cảm biến IR Cổng Ra (GPIO 14):
- *      - Khi có xe ra: Đếm xe -1, Mở Barie Ra (90 độ), tự đóng sau 3 giây.
- * 
- *   3. Giao diện Web:
- *      - Cài đặt số lượng xe tối đa (Max Capacity) gửi trực tiếp xuống ESP32.
- *      - Giám sát số xe thời gian thực, điều khiển cổng thủ công nếu cần.
- * ======================================================================================
+ * ==============================================================================
+ * DU AN: HE THONG DEM XE & DIEU KHIEN 2 CONG BAI DO THONG MINH BANG ESP32
+ * ------------------------------------------------------------------------------
+ * CAU HINH PHAN CUNG ESP32:
+ *   1. CONG VAO (IN GATE):
+ *      - Cam bien hong ngoai IR Vao: Chan D2  (GPIO 2)
+ *      - Dong co Servo Barie Vao:    Chan D18 (GPIO 18)
+ *   2. CONG RA (OUT GATE):
+ *      - Cam bien hong ngoai IR Ra:  Chan D4  (GPIO 4)
+ *      - Dong co Servo Barie Ra:     Chan D19 (GPIO 19)
+ *   3. MAN HINH LCD 1602 I2C (4 CHAN):
+ *      - Chan SDA: Chan D21 (GPIO 21)
+ *      - Chan SCL: Chan D22 (GPIO 22)
+ *      - Chan VCC: Chan VIN (5V)
+ *      - Chan GND: Chan GND
+ *
+ * NGUYEN LY HOAT DONG:
+ *   - Man hinh LCD 1602 hien thi so xe hien co, so cho trong theo thoi gian
+ * thuc
+ *   - Xe vao qua IR D2 -> Dem +1 -> Mo Barie Vao D18 (0 do) -> Tu dong sau 0.5s
+ *     (Neu bai day >= Max: Khoa Barie Vao, LCD bao: "! BAI DA DAY !")
+ *   - Xe ra qua IR D4  -> Dem -1 -> Mo Barie Ra D19 (0 do)  -> Tu dong sau 0.5s
+ *   - Dieu khien tu xa qua MIT App Inventor (B1/T1/B2/T2)
+ *   - Dong bo thoi gian thuc voi Web Dashboard qua REST API
+ * ==============================================================================
  */
 
-#include <WiFi.h>
-#include <WebServer.h>
 #include <ESP32Servo.h>
+#include <ESPmDNS.h>
+#include <LiquidCrystal_I2C.h>
+#include <WiFi.h>
+#include <Wire.h>
 
-// ==================== 1. CẤU HÌNH WIFI ====================
-const char* ssid     = "YOUR_WIFI_NAME";       // Điền tên WiFi của bạn
-const char* password = "YOUR_WIFI_PASSWORD";   // Điền mật khẩu WiFi
+// ==================== 1. KHAI BAO CHAN THIET BI ====================
+// Cong Vao (IN)
+const int PIN_SENSOR_IN = 2; // Cam bien hong ngoai IR Cong Vao (chan D2)
+const int PIN_SERVO_IN = 18; // Dong co Servo Barie Cong Vao (chan D18)
 
-// ==================== 2. MÁY CHỦ WEB ======================
-WebServer server(80);
+// Cong Ra (OUT)
+const int PIN_SENSOR_OUT = 4; // Cam bien hong ngoai IR Cong Ra (chan D4)
+const int PIN_SERVO_OUT = 19; // Dong co Servo Barie Cong Ra (chan D19)
 
-// ==================== 3. CHÂN KẾT NỐI PHẦN CỨNG ==========
-const int PIN_SENSOR_IN  = 13;   // Cảm biến hồng ngoại Cổng Vào
-const int PIN_SENSOR_OUT = 14;   // Cảm biến hồng ngoại Cổng Ra
+// Man hinh LCD 1602 I2C (Chan SDA = D21, SCL = D22 tren ESP32)
+// Dia chi I2C pho bien nhat la 0x27 (mot so loai la 0x3F)
+LiquidCrystal_I2C lcd(0x27, 16, 2);
 
-const int PIN_SERVO_IN   = 18;   // Servo Barie Cổng Vào
-const int PIN_SERVO_OUT  = 19;   // Servo Barie Cổng Ra
+// ==================== 2. CAU HINH WIFI ====================
+const char *ssid = ".....";          // <-- Dien ten WiFi cua ban
+const char *password = "nhatnam222"; // Mat khau WiFi cua ban
 
-// ==================== 4. BIẾN QUẢN LÝ XE & BARIE =========
-int maxCapacity      = 4;        // Sức chứa tối đa (Web có thể chỉnh sửa)
-int currentCarCount  = 0;        // Số xe hiện có trong bãi
+WiFiServer server(80);
 
+// ==================== 3. KHAI BAO SERVO & THONG SO ====================
 Servo inGateServo;
 Servo outGateServo;
 
-const int ANGLE_CLOSED = 0;      // Góc đóng barie nằm ngang
-const int ANGLE_OPEN   = 90;     // Góc mở barie dựng đứng
+// Cau hinh goc quay khi Servo dung doc:
+// - Binh thuong DONG: Thanh barie nam ngang chan duong (90 do)
+// - Khi co xe MO: Thanh barie dung thang cho xe vao (0 do)
+const int GOC_DONG = 90;                // Goc dong barie (nam ngang chan xe)
+const int GOC_MO = 0;                   // Goc mo barie (dung dung cho xe qua)
+const unsigned long THOI_GIAN_MO = 500; // Tu dong dong sau 0.5 giay (500ms)
 
-bool inGateOpen  = false;
-bool outGateOpen = false;
+// Quan ly so luong xe & Trang thai bai
+int maxCapacity = 10;    // Suc chua toi da (Web co the chinh sua)
+int currentCarCount = 0; // So xe hien tai trong bai (khoi tao 0 xe)
 
-unsigned long inGateOpenedTime  = 0;
+bool isInGateOpen = false;
+bool isOutGateOpen = false;
+
+unsigned long inGateOpenedTime = 0;
 unsigned long outGateOpenedTime = 0;
-const unsigned long GATE_AUTO_CLOSE_MS = 3500; // Tự đóng sau 3.5 giây
 
-// Biến lưu trạng thái trước đó để bắt xung (edge detection - tránh đếm nhiều lần cho 1 xe)
-int lastSensorInVal  = HIGH;
+int lastSensorInVal = HIGH;
 int lastSensorOutVal = HIGH;
 
-// ==================== 5. HỖ TRỢ CORS CHO TRÌNH DUYỆT =====
-void setCorsHeaders() {
-  server.sendHeader("Access-Control-Allow-Origin", "*");
-  server.sendHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  server.sendHeader("Access-Control-Allow-Headers", "Content-Type");
+// ==================== 4. HAM HIEN THI MAN HINH LCD 1602 ====================
+void updateLcd(String line1, String line2) {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(line1);
+  lcd.setCursor(0, 1);
+  lcd.print(line2);
 }
 
-void handleOptions() {
-  setCorsHeaders();
-  server.send(204);
-}
+// Hien thi trang thai mac dinh cua bai xe len LCD
+void showDefaultLcd() {
+  lcd.clear();
+  if (currentCarCount >= maxCapacity) {
+    lcd.setCursor(0, 0);
+    lcd.print("! BAI DA DAY !");
+    lcd.setCursor(0, 1);
+    lcd.print("KHOA CONG VAO");
+  } else {
+    int available = maxCapacity - currentCarCount;
+    // Dong 1: XE: 0/10 XE
+    lcd.setCursor(0, 0);
+    lcd.print("XE: ");
+    lcd.print(currentCarCount);
+    lcd.print("/");
+    lcd.print(maxCapacity);
+    lcd.print(" XE");
 
-// ==================== 6. API: LẤY TRẠNG THÁI HIỆN TẠI ====
-// Endpoint: GET /api/status
-void handleGetStatus() {
-  setCorsHeaders();
-
-  bool isFull = (currentCarCount >= maxCapacity);
-  int available = max(0, maxCapacity - currentCarCount);
-
-  String json = "{";
-  json += "\"currentCount\":" + String(currentCarCount) + ",";
-  json += "\"maxCapacity\":" + String(maxCapacity) + ",";
-  json += "\"available\":" + String(available) + ",";
-  json += "\"isFull\":" + String(isFull ? "true" : "false") + ",";
-  json += "\"gates\":{";
-  json += "\"in\":" + String(inGateOpen ? "true" : "false") + ",";
-  json += "\"out\":" + String(outGateOpen ? "true" : "false");
-  json += "},";
-  json += "\"sensors\":{";
-  json += "\"inDetected\":" + String((digitalRead(PIN_SENSOR_IN) == LOW) ? "true" : "false") + ",";
-  json += "\"outDetected\":" + String((digitalRead(PIN_SENSOR_OUT) == LOW) ? "true" : "false");
-  json += "}}";
-
-  server.send(200, "application/json; charset=utf-8", json);
-}
-
-// ==================== 7. API: CÀI ĐẶT SỨC CHỨA TỐI ĐA ===
-// Endpoint: POST /api/set-limit?limit=5
-void handleSetLimit() {
-  setCorsHeaders();
-
-  if (server.hasArg("limit")) {
-    int newLimit = server.arg("limit").toInt();
-    if (newLimit > 0) {
-      maxCapacity = newLimit;
-      Serial.printf("[CẤU HÌNH] -> Đã cập nhật sức chứa tối đa mới: %d xe\n", maxCapacity);
-      server.send(200, "application/json", "{\"success\":true,\"maxCapacity\":" + String(maxCapacity) + "}");
-      return;
-    }
+    // Dong 2: CON TRONG: 10 CHO
+    lcd.setCursor(0, 1);
+    lcd.print("CON TRONG: ");
+    lcd.print(available);
+    lcd.print(" CHO");
   }
-  server.send(400, "application/json", "{\"error\":\"Giá trị limit không hợp lệ\"}");
 }
 
-// ==================== 8. API: ĐẶT LẠI BỘ ĐẾM VỀ 0 =======
-// Endpoint: POST /api/reset-count
-void handleResetCount() {
-  setCorsHeaders();
-  currentCarCount = 0;
-  Serial.println("[RESET] -> Đã đặt lại số xe trong bãi về 0");
-  server.send(200, "application/json", "{\"success\":true,\"currentCount\":0}");
-}
-
-// ==================== 9. API: ĐIỀU KHIỂN CỔNG THỦ CÔNG ===
-// Endpoint: POST /api/gate?gate=in&action=open
-void handleManualGate() {
-  setCorsHeaders();
-
-  String gate = server.arg("gate");
-  String action = server.arg("action");
-
-  if (gate == "in") {
-    if (action == "open") {
-      // Nếu bãi đã đầy thì từ chối mở cổng vào
-      if (currentCarCount >= maxCapacity) {
-        server.send(403, "application/json", "{\"success\":false,\"error\":\"Bãi xe đã đầy! Không thể mở cổng vào.\"}");
-        return;
-      }
-      inGateServo.write(ANGLE_OPEN);
-      inGateOpen = true;
-      inGateOpenedTime = millis();
-    } else {
-      inGateServo.write(ANGLE_CLOSED);
-      inGateOpen = false;
-    }
-  } else if (gate == "out") {
-    if (action == "open") {
-      outGateServo.write(ANGLE_OPEN);
-      outGateOpen = true;
-      outGateOpenedTime = millis();
-    } else {
-      outGateServo.write(ANGLE_CLOSED);
-      outGateOpen = false;
-    }
+// ==================== 5. CAC HAM DIEU KHIEN BARIE ====================
+// Dieu khien Cong Vao
+void openInGate() {
+  inGateServo.write(GOC_MO);
+  isInGateOpen = true;
+  inGateOpenedTime = millis();
+  Serial.println(">>> [CONG VAO] Barie: DANG MO");
+  if (currentCarCount >= maxCapacity) {
+    updateLcd(">> MO CONG VAO", "XE CUOI (DA DAY)");
+  } else {
+    updateLcd(">> MO CONG VAO", "XIN MOI VAO!");
   }
-
-  server.send(200, "application/json", "{\"success\":true}");
 }
 
-// ==================== SETUP ==============================
+void closeInGate() {
+  inGateServo.write(GOC_DONG);
+  isInGateOpen = false;
+  Serial.println("<<< [CONG VAO] Barie: DA DONG");
+  showDefaultLcd();
+}
+
+// Dieu khien Cong Ra
+void openOutGate() {
+  outGateServo.write(GOC_MO);
+  isOutGateOpen = true;
+  outGateOpenedTime = millis();
+  Serial.println(">>> [CONG RA] Barie: DANG MO");
+  updateLcd("<< MO CONG RA", "HEN GAP LAI!");
+}
+
+void closeOutGate() {
+  outGateServo.write(GOC_DONG);
+  isOutGateOpen = false;
+  Serial.println("<<< [CONG RA] Barie: DA DONG");
+  showDefaultLcd();
+}
+
+// ==================== 6. SETUP ====================
 void setup() {
   Serial.begin(115200);
-  delay(1000);
+  delay(10);
   Serial.println("\n========================================================");
-  Serial.println("  HỆ THỐNG ĐẾM XE & KHÓA BARIE TỰ ĐỘNG (ESP32)");
+  Serial.println("  HE THONG DEM XE 2 CONG ESP32 (VAO: D2/D18, RA: D4/D19)");
+  Serial.println("  TICH HOP MAN HINH LCD 1602 I2C (SDA: D21, SCL: D22)");
   Serial.println("========================================================");
 
-  // Cấu hình chân cảm biến
+  // 1. Khoi dong man hinh LCD 1602 qua I2C (SDA: GPIO 21, SCL: GPIO 22)
+  Wire.begin(21, 22);
+  lcd.init();
+  lcd.backlight();
+  updateLcd("BAI DO XE SMART", "Khoi dong...");
+
+  // 2. Cau hinh chan cam bien hong ngoai
   pinMode(PIN_SENSOR_IN, INPUT_PULLUP);
   pinMode(PIN_SENSOR_OUT, INPUT_PULLUP);
-  Serial.printf("[SETUP] Cảm biến Vào -> GPIO %d | Cảm biến Ra -> GPIO %d\n", PIN_SENSOR_IN, PIN_SENSOR_OUT);
 
-  // Cấu hình Servo MG90S
+  // 3. Cau hinh PWM cho 2 Servo tren ESP32
   ESP32PWM::allocateTimer(0);
   ESP32PWM::allocateTimer(1);
   inGateServo.setPeriodHertz(50);
@@ -177,110 +175,324 @@ void setup() {
   inGateServo.attach(PIN_SERVO_IN, 500, 2400);
   outGateServo.attach(PIN_SERVO_OUT, 500, 2400);
 
-  // Đóng cả 2 barie ban đầu
-  inGateServo.write(ANGLE_CLOSED);
-  outGateServo.write(ANGLE_CLOSED);
+  // Dong ca 2 Barie ban dau (90 do)
+  inGateServo.write(GOC_DONG);
+  outGateServo.write(GOC_DONG);
 
-  // Kết nối WiFi
-  Serial.printf("[WIFI] Đang kết nối tới: %s ", ssid);
-  WiFi.mode(WIFI_STA);
+  // 4. Ket noi WiFi
+  updateLcd("DANG KET NOI...", ssid);
+  Serial.print("[WIFI] Dang ket noi toi: ");
+  Serial.println(ssid);
   WiFi.begin(ssid, password);
 
   int attempts = 0;
-  while (WiFi.status() != WL_CONNECTED && attempts < 25) {
+  while (WiFi.status() != WL_CONNECTED && attempts < 30) {
     delay(500);
     Serial.print(".");
     attempts++;
   }
 
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("\n[WIFI] -> KẾT NỐI THÀNH CÔNG!");
-    Serial.print("[WIFI] -> ĐỊA CHỈ IP ESP32: ");
+    MDNS.begin("baidoxe");
+
+    Serial.println(
+        "\n========================================================");
+    Serial.println("  [WIFI] -> KET NOI THANH CONG!");
+    Serial.print("  [IP]   -> DIA CHI IP:       http://");
     Serial.println(WiFi.localIP());
+    Serial.println("  [mDNS] -> TRUY CAP BANG TEN: http://baidoxe.local");
+    Serial.println("========================================================");
+
+    // Hien thi IP len LCD trong 2 giay
+    updateLcd("WIFI KET NOI OK!", String(WiFi.localIP().toString()));
+    delay(2000);
   } else {
-    Serial.println("\n[!] WiFi thất bại, khởi động Access Point:");
-    WiFi.softAP("ESP32_Smart_Parking", "12345678");
-    Serial.print("[WIFI] -> IP AP: ");
-    Serial.println(WiFi.softAPIP());
+    Serial.println(
+        "\n[!] WiFi chua ket noi duoc. Vui long kiem tra lai SSID/Password!");
+    updateLcd("WIFI THAT BAI!", "KIEM TRA SSID");
+    delay(2000);
   }
 
-  // Khai báo các API Route
-  server.on("/api/status", HTTP_GET, handleGetStatus);
-  server.on("/api/status", HTTP_OPTIONS, handleOptions);
-  server.on("/api/set-limit", HTTP_POST, handleSetLimit);
-  server.on("/api/set-limit", HTTP_OPTIONS, handleOptions);
-  server.on("/api/reset-count", HTTP_POST, handleResetCount);
-  server.on("/api/reset-count", HTTP_OPTIONS, handleOptions);
-  server.on("/api/gate", HTTP_POST, handleManualGate);
-  server.on("/api/gate", HTTP_OPTIONS, handleOptions);
-
   server.begin();
-  Serial.printf("[SẴN SÀNG] Sức chứa ban đầu: %d xe | Số xe hiện tại: %d xe\n\n", maxCapacity, currentCarCount);
+  showDefaultLcd();
+  Serial.printf(
+      "[HE THONG] San sang! Suc chua: %d xe | So xe hien tai: %d xe\n\n",
+      maxCapacity, currentCarCount);
 }
 
-// ==================== LOOP ===============================
+// ==================== 7. LOOP ====================
 void loop() {
-  server.handleClient();
+  // 1. Lang nghe va xu ly yeu cau dieu khien tu App / Web
+  checkClient();
 
-  int currentInVal  = digitalRead(PIN_SENSOR_IN);
+  int currentInVal = digitalRead(PIN_SENSOR_IN);
   int currentOutVal = digitalRead(PIN_SENSOR_OUT);
 
-  // 1. XỬ LÝ CẢM BIẾN CỔNG VÀO (Bắt cạnh xuống: HIGH -> LOW)
+  // 2. XU LY CONG VAO (IR chan D2: Bat canh xuong HIGH -> LOW)
   if (lastSensorInVal == HIGH && currentInVal == LOW) {
-    delay(50); // Chống dội tín hiệu (debounce)
+    delay(50); // Debounce
     if (digitalRead(PIN_SENSOR_IN) == LOW) {
-      Serial.println("\n>>> [CỔNG VÀO] Phát hiện xe tiến tới cổng!");
+      Serial.println("\n>>> [CONG VAO] Phat hien xe tien toi cong!");
 
-      // Kiểm tra sức chứa
+      // Kiem tra suc chua bai xe (Xe cuoi cung van cho phep vao de lap day bai)
       if (currentCarCount < maxCapacity) {
         currentCarCount++;
-        Serial.printf("    -> ĐỒNG Ý CHO VÀO! Số xe: %d/%d\n", currentCarCount, maxCapacity);
-
-        // Mở Barie vào
-        inGateServo.write(ANGLE_OPEN);
-        inGateOpen = true;
-        inGateOpenedTime = millis();
+        Serial.printf("    -> DONG Y CHO VAO! So xe trong bai: %d/%d\n",
+                      currentCarCount, maxCapacity);
+        openInGate();
       } else {
-        // ĐÃ ĐẦY -> TỪ CHỐI MỞ CỔNG!
-        Serial.printf("    [CẢNH BÁO] BÃI ĐÃ ĐẦY (%d/%d xe)! KHÓA BARIE VÀO, KHÔNG CHO VÀO!\n", currentCarCount, maxCapacity);
-        inGateServo.write(ANGLE_CLOSED);
-        inGateOpen = false;
+        // Da day (>= maxCapacity) -> Tu choi khong mo cong vao!
+        Serial.printf("    [CANH BAO] BAI DA DAY (%d/%d xe)! KHOA BARIE VAO, "
+                      "KHONG CHO VAO!\n",
+                      currentCarCount, maxCapacity);
+        closeInGate();
+        updateLcd("! BAI DA DAY !", "TU CHOI CHO VAO");
       }
     }
   }
   lastSensorInVal = currentInVal;
 
-  // 2. XỬ LÝ CẢM BIẾN CỔNG RA (Bắt cạnh xuống: HIGH -> LOW)
+  // 3. XU LY CONG RA (IR chan D4: Bat canh xuong HIGH -> LOW)
   if (lastSensorOutVal == HIGH && currentOutVal == LOW) {
-    delay(50);
+    delay(50); // Debounce
     if (digitalRead(PIN_SENSOR_OUT) == LOW) {
-      Serial.println("\n<<< [CỔNG RA] Phát hiện xe tiến tới cổng ra!");
+      Serial.println("\n<<< [CONG RA] Phat hien vat the tai cong ra!");
+
+      // Chi mo cong ra neu trong bai DANG CO XE (> 0)
       if (currentCarCount > 0) {
         currentCarCount--;
+        Serial.printf("    -> DONG Y CHO RA! So xe con lai: %d/%d\n",
+                      currentCarCount, maxCapacity);
+        openOutGate();
+      } else {
+        // Trong bai dang 0 xe -> TU CHOI MO CONG RA!
+        Serial.println(
+            "    [CANH BAO] BAI KHONG CO XE (0 xe)! TU CHOI MO BARIE RA!");
+        closeOutGate();
+        updateLcd("BAI KHONG CO XE!", "TU CHOI MO CONG");
       }
-      Serial.printf("    -> XE ĐÃ RA! Số xe còn lại trong bãi: %d/%d\n", currentCarCount, maxCapacity);
-
-      // Mở Barie ra
-      outGateServo.write(ANGLE_OPEN);
-      outGateOpen = true;
-      outGateOpenedTime = millis();
     }
   }
   lastSensorOutVal = currentOutVal;
 
-  // 3. TỰ ĐỘNG ĐÓNG BARIE VÀO SAU KHI MỞ
-  if (inGateOpen && (millis() - inGateOpenedTime > GATE_AUTO_CLOSE_MS)) {
-    inGateServo.write(ANGLE_CLOSED);
-    inGateOpen = false;
-    Serial.println("    -> Barie Cổng Vào: ĐÃ ĐÓNG");
+  // 4. TU DONG DONG BARIE CONG VAO (An toan: Xe da qua khoi IR D2)
+  if (isInGateOpen && (millis() - inGateOpenedTime >= THOI_GIAN_MO)) {
+    if (digitalRead(PIN_SENSOR_IN) == HIGH) {
+      closeInGate();
+      Serial.println("    -> Barie Cong Vao: Da dong an toan.");
+    } else {
+      // Xe van dang de mat cam bien, hoan dong de tranh kep xe
+      inGateOpenedTime = millis();
+    }
   }
 
-  // 4. TỰ ĐỘNG ĐÓNG BARIE RA SAU KHI MỞ
-  if (outGateOpen && (millis() - outGateOpenedTime > GATE_AUTO_CLOSE_MS)) {
-    outGateServo.write(ANGLE_CLOSED);
-    outGateOpen = false;
-    Serial.println("    -> Barie Cổng Ra: ĐÃ ĐÓNG");
+  // 5. TU DONG DONG BARIE CONG RA (An toan: Xe da qua khoi IR D4)
+  if (isOutGateOpen && (millis() - outGateOpenedTime >= THOI_GIAN_MO)) {
+    if (digitalRead(PIN_SENSOR_OUT) == HIGH) {
+      closeOutGate();
+      Serial.println("    -> Barie Cong Ra: Da dong an toan.");
+    } else {
+      // Xe van dang de mat cam bien ra
+      outGateOpenedTime = millis();
+    }
+  }
+}
+
+// ==================== 8. XU LY KET NOI CLIENT (APP / WEB) ====================
+void checkClient() {
+  WiFiClient client = server.available();
+  if (!client)
+    return;
+
+  unsigned long timeout = millis();
+  while (!client.available() && (millis() - timeout < 150)) {
+    delay(1);
   }
 
-  delay(20);
+  if (!client.available()) {
+    client.stop();
+    return;
+  }
+
+  String request = client.readStringUntil('\r');
+  Serial.print("[HTTP REQUEST]: ");
+  Serial.println(request);
+
+  // 1. Ho tro CORS Preflight cho trinh duyet Web
+  if (request.indexOf("OPTIONS") != -1) {
+    client.println("HTTP/1.1 204 No Content");
+    client.println("Access-Control-Allow-Origin: *");
+    client.println("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+    client.println("Access-Control-Allow-Headers: Content-Type");
+    client.println("Connection: close");
+    client.println();
+    client.stop();
+    return;
+  }
+
+  // 2. API Trang thai thoi gian thuc cho Web Dashboard: GET /api/status
+  if (request.indexOf("/api/status") != -1) {
+    bool isFull = (currentCarCount >= maxCapacity);
+    int available = max(0, maxCapacity - currentCarCount);
+    bool inDetected = (digitalRead(PIN_SENSOR_IN) == LOW);
+    bool outDetected = (digitalRead(PIN_SENSOR_OUT) == LOW);
+
+    String json = "{";
+    json += "\"currentCount\":" + String(currentCarCount) + ",";
+    json += "\"maxCapacity\":" + String(maxCapacity) + ",";
+    json += "\"available\":" + String(available) + ",";
+    json += "\"isFull\":" + String(isFull ? "true" : "false") + ",";
+    json += "\"gates\":{";
+    json += "\"in\":" + String(isInGateOpen ? "true" : "false") + ",";
+    json += "\"out\":" + String(isOutGateOpen ? "true" : "false");
+    json += "},";
+    json += "\"sensors\":{";
+    json += "\"inDetected\":" + String(inDetected ? "true" : "false") + ",";
+    json += "\"outDetected\":" + String(outDetected ? "true" : "false");
+    json += "}}";
+
+    client.println("HTTP/1.1 200 OK");
+    client.println("Content-Type: application/json; charset=utf-8");
+    client.println("Access-Control-Allow-Origin: *");
+    client.println("Connection: close");
+    client.println();
+    client.println(json);
+    client.stop();
+    return;
+  }
+
+  // 3. API Dieu khien cong tu Web Dashboard:
+  // /api/gate?gate=in|out&action=open|close
+  if (request.indexOf("/api/gate") != -1) {
+    if (request.indexOf("gate=in") != -1) {
+      if (request.indexOf("action=open") != -1) {
+        if (currentCarCount < maxCapacity) {
+          openInGate();
+        } else {
+          Serial.println("[CANH BAO Web] Bai xe da day! Tu choi mo cong vao.");
+          updateLcd("! BAI DA DAY !", "TU CHOI CHO VAO");
+        }
+      } else if (request.indexOf("action=close") != -1) {
+        closeInGate();
+      }
+    } else if (request.indexOf("gate=out") != -1) {
+      if (request.indexOf("action=open") != -1) {
+        if (currentCarCount > 0) {
+          openOutGate();
+        } else {
+          Serial.println("[CANH BAO Web] Bai khong co xe! Tu choi mo cong ra.");
+          updateLcd("BAI KHONG CO XE!", "TU CHOI MO CONG");
+        }
+      } else if (request.indexOf("action=close") != -1) {
+        closeOutGate();
+      }
+    }
+
+    client.println("HTTP/1.1 200 OK");
+    client.println("Content-Type: application/json");
+    client.println("Access-Control-Allow-Origin: *");
+    client.println("Connection: close");
+    client.println();
+    client.println("{\"success\":true}");
+    client.stop();
+    return;
+  }
+
+  // 4. API Cai dat suc chua toi da tu Web: /api/set-limit?limit=X
+  if (request.indexOf("/api/set-limit") != -1) {
+    int idx = request.indexOf("limit=");
+    if (idx != -1) {
+      int val = request.substring(idx + 6).toInt();
+      if (val > 0) {
+        maxCapacity = val;
+        Serial.printf("[CAU HINH] Da cap nhat suc chua toi da: %d xe\n",
+                      maxCapacity);
+        showDefaultLcd();
+      }
+    }
+    client.println("HTTP/1.1 200 OK");
+    client.println("Content-Type: application/json");
+    client.println("Access-Control-Allow-Origin: *");
+    client.println("Connection: close");
+    client.println();
+    client.println("{\"success\":true,\"maxCapacity\":" + String(maxCapacity) +
+                   "}");
+    client.stop();
+    return;
+  }
+
+  // 5. API Dieu chinh so xe hien tai tu Web: /api/set-count?count=X
+  if (request.indexOf("/api/set-count") != -1) {
+    int idx = request.indexOf("count=");
+    if (idx != -1) {
+      int val = request.substring(idx + 6).toInt();
+      if (val >= 0) {
+        currentCarCount = val;
+        Serial.printf("[CAU HINH] Da cap nhat so xe trong bai: %d xe\n",
+                      currentCarCount);
+        showDefaultLcd();
+      }
+    }
+    client.println("HTTP/1.1 200 OK");
+    client.println("Content-Type: application/json");
+    client.println("Access-Control-Allow-Origin: *");
+    client.println("Connection: close");
+    client.println();
+    client.println(
+        "{\"success\":true,\"currentCount\":" + String(currentCarCount) + "}");
+    client.stop();
+    return;
+  }
+
+  // 6. API Dat lai so dem xe: /api/reset-count
+  if (request.indexOf("/api/reset-count") != -1) {
+    currentCarCount = 0;
+    Serial.println("[RESET] Dat lai so luong xe trong bai ve 0");
+    showDefaultLcd();
+    client.println("HTTP/1.1 200 OK");
+    client.println("Content-Type: application/json");
+    client.println("Access-Control-Allow-Origin: *");
+    client.println("Connection: close");
+    client.println();
+    client.println("{\"success\":true,\"currentCount\":0}");
+    client.stop();
+    return;
+  }
+
+  // 7. Xu ly lenh tu MIT App Inventor / Trinh duyet thong thuong:
+  // - Cong Vao: B1 (Mo) / T1 (Dong)
+  // - Cong Ra:  B2 (Mo) / T2 (Dong)
+  if (request.indexOf("B1") != -1 || request.indexOf("/OPEN_IN") != -1) {
+    if (currentCarCount < maxCapacity) {
+      openInGate();
+    } else {
+      Serial.println("[CANH BAO App] Bai xe da day! Tu choi mo cong vao.");
+      updateLcd("! BAI DA DAY !", "TU CHOI CHO VAO");
+    }
+  } else if (request.indexOf("T1") != -1 ||
+             request.indexOf("/CLOSE_IN") != -1) {
+    closeInGate();
+  } else if (request.indexOf("B2") != -1 ||
+             request.indexOf("/OPEN_OUT") != -1) {
+    if (currentCarCount > 0) {
+      openOutGate();
+    } else {
+      Serial.println("[CANH BAO App] Bai khong co xe! Tu choi mo cong ra.");
+      updateLcd("BAI KHONG CO XE!", "TU CHOI MO CONG");
+    }
+  } else if (request.indexOf("T2") != -1 ||
+             request.indexOf("/CLOSE_OUT") != -1) {
+    closeOutGate();
+  }
+
+  client.flush();
+
+  // Phan hoi HTTP 200 OK "Da xu ly" chuan dinh dang cho MIT App Inventor
+  client.println("HTTP/1.1 200 OK");
+  client.println("Content-Type: text/html; charset=utf-8");
+  client.println("Access-Control-Allow-Origin: *");
+  client.println("Connection: close");
+  client.println();
+  client.println("Da xu ly");
+  client.stop();
 }

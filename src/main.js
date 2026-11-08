@@ -16,6 +16,7 @@ import {
 import {
   fetchEspStatus,
   sendCapacityLimit,
+  sendCarCount,
   sendGateCommand,
   sendResetCount
 } from './api.js';
@@ -47,6 +48,11 @@ export function triggerBarrier(gate, open) {
     }
   } else if (gate === 'out') {
     if (open) {
+      if (state.currentCount <= 0) {
+        addLog(`[TỪ CHỐI] Bãi xe đang không có xe nào (0 xe)! Không thể mở Barie Cổng Ra.`, 'out');
+        alert("🚨 BÃI XE KHÔNG CÓ XE!\nHiện tại bãi đang trống (0 xe), không thể mở cổng ra.");
+        return;
+      }
       setBarrierUi('out', true);
       addLog("Cổng ra (Out Gate) đã MỞ cho xe ra", 'gate');
     } else {
@@ -83,7 +89,7 @@ export function simulateCarEnter() {
   addLog(`[CỔNG VÀO] Xe qua cảm biến vào. Số xe: ${state.currentCount}/${state.maxCapacity}`, 'in');
 
   triggerBarrier('in', true);
-  setTimeout(() => triggerBarrier('in', false), 3500);
+  setTimeout(() => triggerBarrier('in', false), 500);
 
   renderSlots();
 }
@@ -106,7 +112,7 @@ export function simulateCarLeave() {
   addLog(`[CỔNG RA] Xe qua cảm biến ra. Số xe còn lại: ${state.currentCount}/${state.maxCapacity}`, 'out');
 
   triggerBarrier('out', true);
-  setTimeout(() => triggerBarrier('out', false), 3500);
+  setTimeout(() => triggerBarrier('out', false), 500);
 
   renderSlots();
 }
@@ -137,12 +143,48 @@ function syncEspData(data) {
     }
     if (dom.inputMaxCapacity) dom.inputMaxCapacity.value = state.maxCapacity;
   }
+
   if (typeof data.currentCount === 'number') {
-    state.currentCount = data.currentCount;
+    const newCount = Math.max(0, Math.min(state.maxCapacity, data.currentCount));
+    const currentOccupied = state.slots.filter(s => s.occupied).length;
+
+    if (newCount !== currentOccupied || state.currentCount !== newCount) {
+      if (newCount > currentOccupied) {
+        // Có xe mới vào -> Cập nhật ô đỗ đầu tiên còn trống thành CÓ XE (viền đỏ + icon xe)
+        let toAdd = newCount - currentOccupied;
+        for (let slot of state.slots) {
+          if (!slot.occupied && toAdd > 0) {
+            slot.occupied = true;
+            slot.entryTime = new Date();
+            toAdd--;
+            addLog(`[ESP32] Xe vào bãi -> Đỗ tại ${slot.label}`, 'in');
+          }
+        }
+      } else if (newCount < currentOccupied) {
+        // Có xe ra -> Giải phóng ô đỗ
+        let toRemove = currentOccupied - newCount;
+        for (let i = state.slots.length - 1; i >= 0 && toRemove > 0; i--) {
+          if (state.slots[i].occupied) {
+            state.slots[i].occupied = false;
+            state.slots[i].entryTime = null;
+            toRemove--;
+            addLog(`[ESP32] Xe ra khỏi bãi -> Giải phóng ${state.slots[i].label}`, 'out');
+          }
+        }
+      }
+
+      state.currentCount = newCount;
+      renderSlots();
+    }
   }
+
   if (data.gates) {
     setBarrierUi('in', !!data.gates.in);
     setBarrierUi('out', !!data.gates.out);
+  }
+
+  if (dom.inputCurrentCount && document.activeElement !== dom.inputCurrentCount) {
+    dom.inputCurrentCount.value = state.currentCount;
   }
 
   updateStatistics();
@@ -199,6 +241,49 @@ function setupEventListeners() {
         const ok = await sendCapacityLimit(ip, newLimit);
         if (ok) {
           addLog(`Đã đồng bộ giới hạn ${newLimit} xe xuống vi điều khiển ESP32`, 'info');
+        }
+      }
+    };
+  }
+
+  // Nút điều chỉnh số lượng xe hiện tại trong bãi
+  if (dom.btnUpdateCurrentCount) {
+    dom.btnUpdateCurrentCount.onclick = async () => {
+      const newCount = parseInt(dom.inputCurrentCount?.value, 10);
+      if (isNaN(newCount) || newCount < 0) {
+        alert("Vui lòng nhập số lượng xe hợp lệ (>= 0)!");
+        return;
+      }
+      if (newCount > state.maxCapacity) {
+        alert(`Số xe (${newCount}) không được vượt quá sức chứa tối đa (${state.maxCapacity} xe)!`);
+        return;
+      }
+
+      state.currentCount = newCount;
+      // Cập nhật trạng thái các ô đỗ
+      state.slots.forEach((slot, index) => {
+        if (index < newCount) {
+          if (!slot.occupied) {
+            slot.occupied = true;
+            slot.entryTime = new Date();
+          }
+        } else {
+          slot.occupied = false;
+          slot.entryTime = null;
+        }
+      });
+
+      renderSlots();
+      updateStatistics();
+      addLog(`[CẤU HÌNH] Đã điều chỉnh số xe trong bãi: ${newCount} xe`, 'info');
+
+      if (state.isConnected && !state.isDemoMode) {
+        const ip = dom.espIpInput?.value.trim() || state.espIp;
+        const ok = await sendCarCount(ip, newCount);
+        if (ok) {
+          addLog(`Đã đồng bộ số xe (${newCount} xe) xuống vi điều khiển ESP32`, 'info');
+        } else {
+          addLog(`Không thể gửi số xe tới ESP32, vui lòng kiểm tra kết nối`, 'warning');
         }
       }
     };
