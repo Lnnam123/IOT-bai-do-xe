@@ -29,6 +29,7 @@
 #include <ESP32Servo.h>
 #include <ESPmDNS.h>
 #include <LiquidCrystal_I2C.h>
+#include <Preferences.h>
 #include <WiFi.h>
 #include <Wire.h>
 
@@ -45,9 +46,16 @@ const int PIN_SERVO_OUT = 19; // Dong co Servo Barie Cong Ra (chan D19)
 // Dia chi I2C pho bien nhat la 0x27 (mot so loai la 0x3F)
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
-// ==================== 2. CAU HINH WIFI ====================
-const char *ssid = ".....";          // <-- Dien ten WiFi cua ban
-const char *password = "nhatnam222"; // Mat khau WiFi cua ban
+// ==================== 2. CAU HINH WIFI & FLASH STORAGE ====================
+Preferences preferences;
+
+// WiFi mac dinh (fallback khi chua cau hinh qua App)
+String wifiSsid     = ".....";
+String wifiPassword = "nhatnam222";
+
+// Thong tin Access Point rieng de App de dang quet va ket noi truc tiep
+const char *apSsid     = "BaiDoXe_ESP32";
+const char *apPassword = "123456789"; // Mat khau WiFi Access Point ban dau la 123456789
 
 WiFiServer server(80);
 
@@ -179,14 +187,31 @@ void setup() {
   inGateServo.write(GOC_DONG);
   outGateServo.write(GOC_DONG);
 
-  // 4. Ket noi WiFi
-  updateLcd("DANG KET NOI...", ssid);
+  // 4. Doc cau hinh WiFi da luu tu Flash
+  preferences.begin("parking_cfg", false);
+  String savedSsid = preferences.getString("ssid", "");
+  String savedPass = preferences.getString("pass", "");
+  if (savedSsid.length() > 0) {
+    wifiSsid = savedSsid;
+    wifiPassword = savedPass;
+    Serial.println("[CONFIG] Da doc WiFi tu Flash: " + wifiSsid);
+  }
+
+  // Bat ca 2 che do: Vua ket noi WiFi router (STA), vua phat WiFi rieng 'BaiDoXe_ESP32' (AP)
+  WiFi.mode(WIFI_AP_STA);
+  WiFi.softAP(apSsid, apPassword);
+  Serial.println("\n[AP MODE] Da phat Access Point: " + String(apSsid));
+  Serial.println("  [Pass AP]   -> 123456789");
+  Serial.print("  [IP AP]     -> http://");
+  Serial.println(WiFi.softAPIP()); // 192.168.4.1
+
+  updateLcd("DANG KET NOI...", wifiSsid);
   Serial.print("[WIFI] Dang ket noi toi: ");
-  Serial.println(ssid);
-  WiFi.begin(ssid, password);
+  Serial.println(wifiSsid);
+  WiFi.begin(wifiSsid.c_str(), wifiPassword.c_str());
 
   int attempts = 0;
-  while (WiFi.status() != WL_CONNECTED && attempts < 30) {
+  while (WiFi.status() != WL_CONNECTED && attempts < 20) {
     delay(500);
     Serial.print(".");
     attempts++;
@@ -198,9 +223,11 @@ void setup() {
     Serial.println(
         "\n========================================================");
     Serial.println("  [WIFI] -> KET NOI THANH CONG!");
-    Serial.print("  [IP]   -> DIA CHI IP:       http://");
+    Serial.print("  [IP Router] -> http://");
     Serial.println(WiFi.localIP());
-    Serial.println("  [mDNS] -> TRUY CAP BANG TEN: http://baidoxe.local");
+    Serial.println("  [mDNS]      -> http://baidoxe.local");
+    Serial.print("  [IP AP]     -> http://");
+    Serial.println(WiFi.softAPIP());
     Serial.println("========================================================");
 
     // Hien thi IP len LCD trong 2 giay
@@ -208,9 +235,10 @@ void setup() {
     delay(2000);
   } else {
     Serial.println(
-        "\n[!] WiFi chua ket noi duoc. Vui long kiem tra lai SSID/Password!");
-    updateLcd("WIFI THAT BAI!", "KIEM TRA SSID");
-    delay(2000);
+        "\n[!] Chua ket noi duoc WiFi router.");
+    Serial.println("[!] Hay ket noi dien thoai vao WiFi 'BaiDoXe_ESP32' (Mat khau: 123456789) de cau hinh WiFi trong App!");
+    updateLcd("AP: BaiDoXe_ESP32", "IP: 192.168.4.1");
+    delay(2500);
   }
 
   server.begin();
@@ -330,7 +358,7 @@ void checkClient() {
     return;
   }
 
-  // 2. API Trang thai thoi gian thuc cho Web Dashboard: GET /api/status
+  // 2. API Trang thai thoi gian thuc cho Web & App: GET /api/status
   if (request.indexOf("/api/status") != -1) {
     bool isFull = (currentCarCount >= maxCapacity);
     int available = max(0, maxCapacity - currentCarCount);
@@ -338,6 +366,10 @@ void checkClient() {
     bool outDetected = (digitalRead(PIN_SENSOR_OUT) == LOW);
 
     String json = "{";
+    json += "\"deviceName\":\"ESP32 Bai Do Xe\",";
+    json += "\"ip\":\"" + WiFi.localIP().toString() + "\",";
+    json += "\"apIp\":\"" + WiFi.softAPIP().toString() + "\",";
+    json += "\"connectedSsid\":\"" + WiFi.SSID() + "\",";
     json += "\"currentCount\":" + String(currentCarCount) + ",";
     json += "\"maxCapacity\":" + String(maxCapacity) + ",";
     json += "\"available\":" + String(available) + ",";
@@ -359,6 +391,92 @@ void checkClient() {
     client.println(json);
     client.stop();
     return;
+  }
+
+  // 2.1. API Quet cac mang WiFi xung quanh cho App: GET /api/scan-wifi
+  if (request.indexOf("/api/scan-wifi") != -1) {
+    Serial.println("[WIFI SCAN] Dang quet cac mang WiFi xung quanh...");
+    int n = WiFi.scanNetworks();
+    String json = "[";
+    for (int i = 0; i < n; ++i) {
+      if (i > 0) json += ",";
+      json += "{";
+      json += "\"ssid\":\"" + WiFi.SSID(i) + "\",";
+      json += "\"rssi\":" + String(WiFi.RSSI(i)) + ",";
+      json += "\"open\":" + String(WiFi.encryptionType(i) == WIFI_AUTH_OPEN ? "true" : "false");
+      json += "}";
+    }
+    json += "]";
+    Serial.printf("[WIFI SCAN] Tim thay %d mang WiFi xung quanh\n", n);
+
+    client.println("HTTP/1.1 200 OK");
+    client.println("Content-Type: application/json; charset=utf-8");
+    client.println("Access-Control-Allow-Origin: *");
+    client.println("Connection: close");
+    client.println();
+    client.println(json);
+    client.stop();
+    return;
+  }
+
+  // 2.2. API Cau hinh WiFi truc tiep tu App: /api/set-wifi?ssid=NAME&pass=PASS
+  if (request.indexOf("/api/set-wifi") != -1) {
+    String newSsid = "";
+    String newPass = "";
+    int idxSsid = request.indexOf("ssid=");
+    int idxPass = request.indexOf("pass=");
+    if (idxSsid != -1) {
+      int endSsid = request.indexOf('&', idxSsid);
+      if (endSsid == -1) endSsid = request.indexOf(' ', idxSsid);
+      newSsid = request.substring(idxSsid + 5, endSsid);
+    }
+    if (idxPass != -1) {
+      int endPass = request.indexOf('&', idxPass);
+      if (endPass == -1) endPass = request.indexOf(' ', idxPass);
+      newPass = request.substring(idxPass + 5, endPass);
+    }
+
+    newSsid.replace("%20", " ");
+    newPass.replace("%20", " ");
+
+    Serial.println("[CONFIG] Nhan cau hinh WiFi moi tu App: " + newSsid);
+    if (newSsid.length() > 0) {
+      preferences.putString("ssid", newSsid);
+      preferences.putString("pass", newPass);
+      wifiSsid = newSsid;
+      wifiPassword = newPass;
+
+      client.println("HTTP/1.1 200 OK");
+      client.println("Content-Type: application/json; charset=utf-8");
+      client.println("Access-Control-Allow-Origin: *");
+      client.println("Connection: close");
+      client.println();
+      client.println("{\"success\":true,\"message\":\"Connecting to " + newSsid + "\"}");
+      client.stop();
+
+      updateLcd("DANG NOI WIFI...", newSsid);
+      delay(500);
+      WiFi.disconnect();
+      WiFi.begin(wifiSsid.c_str(), wifiPassword.c_str());
+
+      int waitSec = 0;
+      while (WiFi.status() != WL_CONNECTED && waitSec < 20) {
+        delay(500);
+        waitSec++;
+      }
+
+      if (WiFi.status() == WL_CONNECTED) {
+        MDNS.begin("baidoxe");
+        Serial.println("[CONFIG] Da ket noi WiFi moi! IP: " + WiFi.localIP().toString());
+        updateLcd("WIFI MOI OK!", String(WiFi.localIP().toString()));
+      } else {
+        Serial.println("[CONFIG] Ket noi WiFi moi that bai!");
+        updateLcd("KET NOI THAT BAI", "THU LAI QUA APP");
+      }
+      delay(2000);
+      showDefaultLcd();
+      return;
+    }
   }
 
   // 3. API Dieu khien cong tu Web Dashboard:

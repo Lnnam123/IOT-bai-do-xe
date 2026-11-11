@@ -239,7 +239,17 @@ app.all('/api/esp32/proxy', async (req, res) => {
   }
 });
 
-// ==================== STATIC FILE SERVING ====================
+// ==================== STATIC FILE & FLUTTER APP SERVING ====================
+
+// Phục vụ ứng dụng Flutter Web (nếu đã build trong thư mục app/build/web)
+const appWebPath = path.join(__dirname, 'app', 'build', 'web');
+if (fs.existsSync(appWebPath)) {
+  console.log(`[INFO] Phục vụ ứng dụng Flutter Web tại đường dẫn: /app`);
+  app.use('/app', express.static(appWebPath));
+  app.get('/app/*', (req, res) => {
+    res.sendFile(path.join(appWebPath, 'index.html'));
+  });
+}
 
 const distPath = path.join(__dirname, 'dist');
 if (fs.existsSync(distPath)) {
@@ -266,6 +276,7 @@ app.listen(PORT, () => {
   console.log('==========================================================');
   console.log(' SMART PARKING IOT - NODE.JS & VITE BACKEND SERVER');
   console.log(` 🚀 Máy chủ Node.js đang chạy tại: http://localhost:${PORT}`);
+  console.log(` 📱 Ứng dụng Quản lý Bãi xe (Flutter): http://localhost:${PORT}/app`);
   console.log('    - GET  /api/status');
   console.log('    - POST /api/set-limit?limit=X');
   console.log('    - POST /api/gate?gate=in|out&action=open|close');

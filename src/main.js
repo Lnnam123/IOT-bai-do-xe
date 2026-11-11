@@ -2,7 +2,7 @@
  * Smart Parking IoT - Main Application Bootstrap (Vite + ES Modules)
  */
 import './style.css';
-import { state, calculateParkingFee, formatCurrency, setCapacity } from './state.js';
+import { state, setCapacity } from './state.js';
 import {
   dom,
   addLog,

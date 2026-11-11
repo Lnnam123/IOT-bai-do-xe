@@ -1,7 +1,7 @@
 /**
  * Smart Parking IoT - UI Rendering & DOM Controller
  */
-import { state, formatCurrency, formatDuration, getTimeString, calculateParkingFee } from './state.js';
+import { state, formatDuration, getTimeString } from './state.js';
 
 // DOM Elements Cache
 export const dom = {

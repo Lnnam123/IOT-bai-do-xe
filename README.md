@@ -35,7 +35,11 @@ npm install
 | `npm run dev` | Khởi chạy **Vite Dev Server** (HMR, sửa code nhận ngay) | `http://localhost:3000` |
 | `npm run build` | Đóng gói tối ưu hóa cho sản xuất vào thư mục `dist/` | N/A |
 | `npm run preview` | Xem trước bản build tĩnh của Vite | `http://localhost:4173` |
-| `npm start` hoặc `npm run server` | Chạy **Node.js Backend & ESP32 Proxy Server** | `http://localhost:5000` |
+| `npm start` hoặc `npm run server` | Chạy **Node.js Backend & ESP32 Proxy Server** | `http://localhost:5000` (Web) & `/app` (App) |
+| `npm run app:run` | Chạy ứng dụng **Flutter Mobile / Desktop** | Cửa sổ ứng dụng / Thiết bị |
+| `npm run app:web` | Chạy ứng dụng **Flutter Web trên Chrome** | `http://localhost:port` |
+| `npm run app:build` | Đóng gói bản **Flutter Web** vào thư mục `app/build/web` | `http://localhost:5000/app` |
+| `npm run app:apk` | Đóng gói file cài đặt **Android APK** | `app/build/app/outputs/flutter-apk` |
 
 > 💡 **Khởi chạy nhanh trên Windows:** Bạn có thể nhấp đúp chuột vào file **`start.bat`** hoặc chạy **`start_server.ps1`** trong PowerShell để chọn chế độ chạy tiện lợi!
 
@@ -44,25 +48,30 @@ npm install
 ## 📂 CẤU TRÚC THƯ MỤC DỰ ÁN
 
 ```text
-WebIOT/
-├── dist/                    # Bản build production đóng gói hoàn chỉnh
+IOT-bai-do-xe/
+├── app/                         # ỨNG DỤNG FLUTTER MOBILE & WEB (Layout Cointap / 24CT1)
+│   ├── lib/
+│   │   ├── backend/
+│   │   │   ├── models/models.dart           # Model Bãi xe, Ô đỗ, Lịch sử, Thông báo
+│   │   │   └── services/esp32_service.dart  # REST API ESP32 & Polling Realtime
+│   │   ├── frontend/
+│   │   │   ├── chu_de/mau_sac.dart          # Design Tokens (MauSac chuẩn Cointap)
+│   │   │   ├── man_hinh/                    # 4 Tab chính (Tổng quan, Sơ đồ ô đỗ, Lịch sử, Cài đặt)
+│   │   │   └── thanh_phan/                  # Modal chi tiết ô, Cài đặt sức chứa, FAB action
+│   │   └── main.dart                        # BottomAppBar CircularNotched & Screen Switcher
+│   ├── build/web/               # Bản build Web hoàn chỉnh (tích hợp sẵn vào server.js)
+│   └── pubspec.yaml             # Cấu hình Flutter dependencies
+├── dist/                        # Bản build production đóng gói hoàn chỉnh Web Vite
 ├── esp32/
-│   └── esp32_parking.ino    # Mã nguồn nạp vi điều khiển ESP32
-├── src/
-│   ├── api.js               # Service gọi REST API ESP32 & Backend Proxy
-│   ├── main.js              # Điểm khởi đầu ứng dụng Vite (Event handlers, bootstrap)
-│   ├── schematic.css        # Giao diện trang sơ đồ đấu nối & sa bàn
-│   ├── schematic.js         # Logic mô phỏng mạch điện & serial monitor
-│   ├── state.js             # Quản lý trạng thái bãi xe, ô đỗ, tính cước phí
-│   ├── style.css            # Toàn bộ stylesheet giao diện giám sát chính
-│   └── ui.js                # Điều khiển DOM, render thẻ ô đỗ, KPI, modal
-├── index.html               # Trang Dashboard giám sát bãi xe thời gian thực
-├── package.json             # Cấu hình dự án Node.js & dependencies
-├── server.js                # Máy chủ Node.js Express (REST API + CORS Proxy)
-├── so_do_ket_noi.html       # Sơ đồ đấu dây chi tiết & Sa bàn in nộp báo cáo (A4)
-├── start.bat                # Phím tắt khởi động 1-click cho Windows
-├── start_server.ps1         # Script PowerShell hỗ trợ khởi chạy
-├── vite.config.js           # Cấu hình Vite (Multi-page rollup & proxy)
+│   └── esp32_parking.ino        # Mã nguồn nạp vi điều khiển ESP32
+├── src/                         # Mã nguồn giao diện Web tĩnh Vite
+├── index.html                   # Trang Dashboard giám sát bãi xe thời gian thực
+├── package.json                 # Cấu hình dự án Node.js & dependencies
+├── server.js                    # Máy chủ Node.js Express (REST API + CORS Proxy + Flutter /app)
+├── so_do_ket_noi.html           # Sơ đồ đấu dây chi tiết & Sa bàn in nộp báo cáo (A4)
+├── start.bat                    # Phím tắt khởi động 1-click cho Windows
+├── start_server.ps1             # Script PowerShell hỗ trợ khởi chạy
+├── vite.config.js               # Cấu hình Vite (Multi-page rollup & proxy)
 └── README.md
 ```
 

@@ -71,20 +71,6 @@ export function setCapacity(newLimit) {
   state.currentCount = state.slots.filter(s => s.occupied).length;
 }
 
-// Pricing calculation logic (VND)
-export function calculateParkingFee(entryDate) {
-  if (!entryDate) return 0;
-  const now = new Date();
-  const diffMs = Math.max(0, now - new Date(entryDate));
-  const diffMinutes = Math.floor(diffMs / (1000 * 60));
-
-  if (diffMinutes <= 30) {
-    return 10000; // Giá mở cửa 30p
-  }
-  const additionalHours = Math.ceil((diffMinutes - 30) / 60);
-  return 10000 + (additionalHours * 15000);
-}
-
 export function formatDuration(entryDate) {
   if (!entryDate) return "--";
   const now = new Date();
@@ -98,10 +84,6 @@ export function formatDuration(entryDate) {
     return `${hours}h ${minutes}p ${seconds}s`;
   }
   return `${minutes}p ${seconds}s`;
-}
-
-export function formatCurrency(amount) {
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
 }
 
 export function getTimeString(date = new Date()) {

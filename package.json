@@ -8,7 +8,11 @@
     "build": "vite build",
     "preview": "vite preview",
     "server": "node server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "app:run": "cd app && flutter run",
+    "app:web": "cd app && flutter run -d chrome",
+    "app:build": "cd app && flutter build web --release",
+    "app:apk": "cd app && flutter build apk --release"
   },
   "keywords": [
     "iot",
