@@ -52,3 +52,38 @@ flutter {
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
+
+// Tự động sao chép và đổi tên file APK theo phiên bản trong code (ví dụ: baidoxe_V1.0.apk)
+tasks.register("taoFileApkTheoPhienBan") {
+    doLast {
+        val rawVersion = flutter.versionName ?: "1.0"
+        val parts = rawVersion.split(".")
+        val v = if (parts.size >= 2) "${parts[0]}.${parts[1]}" else rawVersion
+        val tenFileMoi = "baidoxe_V${v}.apk"
+
+        val buildDir = layout.buildDirectory.asFile.get()
+        val thuMucOutputs = listOf(
+            File(buildDir, "outputs/apk/release"),
+            File(buildDir, "outputs/apk/debug"),
+            File(buildDir, "outputs/flutter-apk")
+        )
+
+        for (thuMuc in thuMucOutputs) {
+            val fileRelease = File(thuMuc, "app-release.apk")
+            val fileDebug = File(thuMuc, "app-debug.apk")
+            val fileGoc = if (fileRelease.exists()) fileRelease else (if (fileDebug.exists()) fileDebug else null)
+
+            if (fileGoc != null && fileGoc.exists()) {
+                val fileDich = File(thuMuc, tenFileMoi)
+                fileGoc.copyTo(fileDich, overwrite = true)
+                println("==================================================")
+                println("[APK XUAT THANH CONG] File APK: ${fileDich.absolutePath}")
+                println("==================================================")
+            }
+        }
+    }
+}
+
+tasks.matching { it.name.startsWith("assemble") }.configureEach {
+    finalizedBy("taoFileApkTheoPhienBan")
+}
