@@ -613,7 +613,7 @@ class Esp32Service extends ChangeNotifier {
       final sw = Stopwatch()..start();
       try {
         final url = Uri.parse('http://$ip:80/api/status');
-        final response = await http.get(url).timeout(const Duration(milliseconds: 1600));
+        final response = await http.get(url).timeout(const Duration(milliseconds: 2500));
         sw.stop();
 
         if (response.statusCode == 200) {
@@ -632,8 +632,8 @@ class Esp32Service extends ChangeNotifier {
             );
           }
         }
-      } catch (_) {
-        // Bỏ qua lỗi timeout hoặc không phản hồi
+      } catch (e) {
+        debugPrint('[Quét ESP32 - $ip] Thăm dò thất bại: $e');
       }
       return null;
     });

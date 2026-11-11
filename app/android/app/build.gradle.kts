@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.example.project_24ct_lenhatnam"
-    compileSdk = 34
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -17,7 +17,7 @@ android {
 
     defaultConfig {
         applicationId = "com.lenhatnam.baidoxe"
-        minSdk = 24
+        minSdk = flutter.minSdkVersion
         targetSdk = 34
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -25,8 +25,8 @@ android {
 
     signingConfigs {
         getByName("debug") {
-            v1SigningEnabled = true
-            v2SigningEnabled = true
+            enableV1Signing = true
+            enableV2Signing = true
         }
     }
 

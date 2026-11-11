@@ -205,6 +205,10 @@ void setup() {
   Serial.print("  [IP AP]     -> http://");
   Serial.println(WiFi.softAPIP()); // 192.168.4.1
 
+  // Khoi dong Web Server & mDNS ngay de phuc vu ket noi AP tuc thi
+  server.begin();
+  MDNS.begin("baidoxe");
+
   updateLcd("DANG KET NOI...", wifiSsid);
   Serial.print("[WIFI] Dang ket noi toi: ");
   Serial.println(wifiSsid);
@@ -218,8 +222,6 @@ void setup() {
   }
 
   if (WiFi.status() == WL_CONNECTED) {
-    MDNS.begin("baidoxe");
-
     Serial.println(
         "\n========================================================");
     Serial.println("  [WIFI] -> KET NOI THANH CONG!");
@@ -241,7 +243,6 @@ void setup() {
     delay(2500);
   }
 
-  server.begin();
   showDefaultLcd();
   Serial.printf(
       "[HE THONG] San sang! Suc chua: %d xe | So xe hien tai: %d xe\n\n",
@@ -327,14 +328,48 @@ void loop() {
 }
 
 // ==================== 8. XU LY KET NOI CLIENT (APP / WEB) ====================
+// Ham doc sach toan bo header con lai cua request de tranh loi TCP RST socket
+void drainRemainingHeaders(WiFiClient &client) {
+  unsigned long start = millis();
+  while (client.connected() && (millis() - start < 400)) {
+    if (client.available()) {
+      String line = client.readStringUntil('\n');
+      if (line == "\r" || line.length() == 0) {
+        break; // Da het toan bo header
+      }
+    } else {
+      delay(1);
+    }
+  }
+}
+
+// Ham phan hoi JSON chuan REST API, day du Content-Length va CORS
+void sendJsonResponse(WiFiClient &client, const String &json) {
+  drainRemainingHeaders(client);
+  client.println("HTTP/1.1 200 OK");
+  client.println("Content-Type: application/json; charset=utf-8");
+  client.println("Access-Control-Allow-Origin: *");
+  client.println("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+  client.println("Access-Control-Allow-Headers: Content-Type");
+  client.print("Content-Length: ");
+  client.println(json.length());
+  client.println("Connection: close");
+  client.println();
+  client.print(json);
+  client.flush();
+  delay(10);
+  client.stop();
+}
+
 void checkClient() {
   WiFiClient client = server.available();
   if (!client)
     return;
 
+  // Tang timeout cho doi data len 1000ms de phong mang SoftAP ban dau bi lag
   unsigned long timeout = millis();
-  while (!client.available() && (millis() - timeout < 150)) {
-    delay(1);
+  while (!client.available() && (millis() - timeout < 1000)) {
+    delay(2);
   }
 
   if (!client.available()) {
@@ -348,12 +383,16 @@ void checkClient() {
 
   // 1. Ho tro CORS Preflight cho trinh duyet Web
   if (request.indexOf("OPTIONS") != -1) {
+    drainRemainingHeaders(client);
     client.println("HTTP/1.1 204 No Content");
     client.println("Access-Control-Allow-Origin: *");
     client.println("Access-Control-Allow-Methods: GET, POST, OPTIONS");
     client.println("Access-Control-Allow-Headers: Content-Type");
+    client.println("Content-Length: 0");
     client.println("Connection: close");
     client.println();
+    client.flush();
+    delay(5);
     client.stop();
     return;
   }
@@ -383,13 +422,7 @@ void checkClient() {
     json += "\"outDetected\":" + String(outDetected ? "true" : "false");
     json += "}}";
 
-    client.println("HTTP/1.1 200 OK");
-    client.println("Content-Type: application/json; charset=utf-8");
-    client.println("Access-Control-Allow-Origin: *");
-    client.println("Connection: close");
-    client.println();
-    client.println(json);
-    client.stop();
+    sendJsonResponse(client, json);
     return;
   }
 
@@ -409,13 +442,7 @@ void checkClient() {
     json += "]";
     Serial.printf("[WIFI SCAN] Tim thay %d mang WiFi xung quanh\n", n);
 
-    client.println("HTTP/1.1 200 OK");
-    client.println("Content-Type: application/json; charset=utf-8");
-    client.println("Access-Control-Allow-Origin: *");
-    client.println("Connection: close");
-    client.println();
-    client.println(json);
-    client.stop();
+    sendJsonResponse(client, json);
     return;
   }
 
@@ -446,13 +473,7 @@ void checkClient() {
       wifiSsid = newSsid;
       wifiPassword = newPass;
 
-      client.println("HTTP/1.1 200 OK");
-      client.println("Content-Type: application/json; charset=utf-8");
-      client.println("Access-Control-Allow-Origin: *");
-      client.println("Connection: close");
-      client.println();
-      client.println("{\"success\":true,\"message\":\"Connecting to " + newSsid + "\"}");
-      client.stop();
+      sendJsonResponse(client, "{\"success\":true,\"message\":\"Connecting to " + newSsid + "\"}");
 
       updateLcd("DANG NOI WIFI...", newSsid);
       delay(500);
@@ -506,13 +527,7 @@ void checkClient() {
       }
     }
 
-    client.println("HTTP/1.1 200 OK");
-    client.println("Content-Type: application/json");
-    client.println("Access-Control-Allow-Origin: *");
-    client.println("Connection: close");
-    client.println();
-    client.println("{\"success\":true}");
-    client.stop();
+    sendJsonResponse(client, "{\"success\":true}");
     return;
   }
 
@@ -528,14 +543,7 @@ void checkClient() {
         showDefaultLcd();
       }
     }
-    client.println("HTTP/1.1 200 OK");
-    client.println("Content-Type: application/json");
-    client.println("Access-Control-Allow-Origin: *");
-    client.println("Connection: close");
-    client.println();
-    client.println("{\"success\":true,\"maxCapacity\":" + String(maxCapacity) +
-                   "}");
-    client.stop();
+    sendJsonResponse(client, "{\"success\":true,\"maxCapacity\":" + String(maxCapacity) + "}");
     return;
   }
 
@@ -551,14 +559,7 @@ void checkClient() {
         showDefaultLcd();
       }
     }
-    client.println("HTTP/1.1 200 OK");
-    client.println("Content-Type: application/json");
-    client.println("Access-Control-Allow-Origin: *");
-    client.println("Connection: close");
-    client.println();
-    client.println(
-        "{\"success\":true,\"currentCount\":" + String(currentCarCount) + "}");
-    client.stop();
+    sendJsonResponse(client, "{\"success\":true,\"currentCount\":" + String(currentCarCount) + "}");
     return;
   }
 
@@ -567,13 +568,7 @@ void checkClient() {
     currentCarCount = 0;
     Serial.println("[RESET] Dat lai so luong xe trong bai ve 0");
     showDefaultLcd();
-    client.println("HTTP/1.1 200 OK");
-    client.println("Content-Type: application/json");
-    client.println("Access-Control-Allow-Origin: *");
-    client.println("Connection: close");
-    client.println();
-    client.println("{\"success\":true,\"currentCount\":0}");
-    client.stop();
+    sendJsonResponse(client, "{\"success\":true,\"currentCount\":0}");
     return;
   }
 
@@ -603,14 +598,17 @@ void checkClient() {
     closeOutGate();
   }
 
-  client.flush();
-
-  // Phan hoi HTTP 200 OK "Da xu ly" chuan dinh dang cho MIT App Inventor
+  drainRemainingHeaders(client);
+  String resp = "Da xu ly";
   client.println("HTTP/1.1 200 OK");
   client.println("Content-Type: text/html; charset=utf-8");
   client.println("Access-Control-Allow-Origin: *");
+  client.print("Content-Length: ");
+  client.println(resp.length());
   client.println("Connection: close");
   client.println();
-  client.println("Da xu ly");
+  client.print(resp);
+  client.flush();
+  delay(10);
   client.stop();
 }
