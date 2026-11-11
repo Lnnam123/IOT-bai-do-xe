@@ -1,6 +1,6 @@
 {
   "name": "smart-parking-iot",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Hệ thống đếm xe & khóa barie tự động bằng ESP32 - Smart Parking IoT",
   "type": "module",
   "scripts": {
@@ -12,7 +12,7 @@
     "app:run": "cd app && flutter run",
     "app:web": "cd app && flutter run -d chrome",
     "app:build": "cd app && flutter build web --release",
-    "app:apk": "cd app && flutter build apk --release && node ../scripts/rename-apk.js"
+    "app:apk": "cd app && flutter pub get && flutter build apk --release && node ../scripts/rename-apk.js"
   },
   "keywords": [
     "iot",

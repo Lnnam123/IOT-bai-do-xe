@@ -152,6 +152,18 @@ app.post('/api/reset-count', (req, res) => {
 });
 
 /**
+ * ALL /api/reset-wifi
+ * Đặt lại cấu hình WiFi về mặc định
+ */
+app.all('/api/reset-wifi', (req, res) => {
+  console.log(`[RESET WIFI] Đã nhận lệnh xóa cấu hình WiFi về mặc định`);
+  res.json({
+    status: 'success',
+    message: 'Đã xóa toàn bộ WiFi đã lưu. ESP32 trở về chế độ Access Point mặc định (BaiDoXe_ESP32).'
+  });
+});
+
+/**
  * POST /api/simulate-enter
  * Giả lập xe vào qua cảm biến IR (+1)
  */
@@ -240,6 +252,16 @@ app.all('/api/esp32/proxy', async (req, res) => {
 });
 
 // ==================== STATIC FILE & FLUTTER APP SERVING ====================
+
+// Endpoint tải trực tiếp file APK cho điện thoại Android
+app.get(['/download/apk', '/apk'], (req, res) => {
+  const apkPath = path.join(__dirname, 'app', 'build', 'app', 'outputs', 'flutter-apk', 'baidoxe_V1.0.apk');
+  if (fs.existsSync(apkPath)) {
+    res.download(apkPath, 'baidoxe_V1.0.apk');
+  } else {
+    res.status(404).send('Chưa có file APK. Vui lòng chạy npm run app:apk trước.');
+  }
+});
 
 // Phục vụ ứng dụng Flutter Web (nếu đã build trong thư mục app/build/web)
 const appWebPath = path.join(__dirname, 'app', 'build', 'web');

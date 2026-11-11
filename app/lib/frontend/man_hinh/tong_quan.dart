@@ -446,18 +446,8 @@ class ManHinhTongQuan extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(vertical: 11),
                             ),
                             onPressed: state.currentCount <= 0 ? null : () async {
-                              // Tìm ô đỗ đầu tiên có xe để xuất bãi
-                              ODoXe? occupiedSlot;
-                              for (final s in state.slots) {
-                                if (s.isOccupied) {
-                                  occupiedSlot = s;
-                                  break;
-                                }
-                              }
-                              if (occupiedSlot != null) {
-                                await esp.xeRaBai(occupiedSlot.id);
-                                onRefresh();
-                              }
+                              await esp.xeRaBai();
+                              onRefresh();
                             },
                             icon: const Icon(Icons.arrow_back_rounded, size: 18),
                             label: Text(

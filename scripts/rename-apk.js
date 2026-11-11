@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { execSync } from 'child_process';
 
 try {
   // 1. Tim file pubspec.yaml du chay tu thu muc goc hay thu muc app
@@ -23,20 +24,26 @@ try {
     path.join(rootDir, 'app', 'build', 'app', 'outputs', 'apk', 'release')
   ];
 
+  const keystorePath = path.join(rootDir, 'app', 'android', 'app', 'key.jks');
+  const apksignerPath = 'E:\\Android_SDK\\build-tools\\36.0.0\\apksigner.bat';
+
   let found = false;
   for (const d of dirs) {
     if (fs.existsSync(d)) {
       const targetPath = path.join(d, targetApkName);
-      if (fs.existsSync(targetPath)) {
-        console.log(`\n==================================================`);
-        console.log(`🎉 [XUẤT APK THÀNH CÔNG] File cài đặt: ${targetPath}`);
-        console.log(`==================================================`);
-        found = true;
-        continue;
-      }
       const src = path.join(d, 'app-release.apk');
       if (fs.existsSync(src)) {
         fs.copyFileSync(src, targetPath);
+      }
+
+      if (fs.existsSync(targetPath)) {
+        // Tu dong ky so V1 (JAR) + V2 + V3 de moi dong Android deu cai duoc
+        if (fs.existsSync(keystorePath) && fs.existsSync(apksignerPath)) {
+          try {
+            execSync(`"${apksignerPath}" sign --ks "${keystorePath}" --ks-pass "pass:baidoxe123" --ks-key-alias baidoxe --key-pass "pass:baidoxe123" --min-sdk-version 21 --v1-signing-enabled true --v2-signing-enabled true "${targetPath}"`, { stdio: 'ignore' });
+          } catch (_) {}
+        }
+
         console.log(`\n==================================================`);
         console.log(`🎉 [XUẤT APK THÀNH CÔNG] File cài đặt: ${targetPath}`);
         console.log(`==================================================`);

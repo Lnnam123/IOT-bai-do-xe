@@ -129,54 +129,60 @@ class Esp32Service extends ChangeNotifier {
     _isSyncing = true;
 
     try {
-      if (state.isDemoMode) {
-        // Cập nhật timestamp và thông báo cảnh báo bãi đầy
-        state.lastUpdate = DateTime.now();
-        _kiemTraCanhBaoBaiDay();
-        notifyListeners();
-        return;
-      }
+      if (state.espIp.trim().isNotEmpty) {
+        // Gọi REST API của ESP32 hoặc Backend Node.js
+        final url = Uri.parse('http://${state.espIp}:${state.port}/api/status');
+        final response = await http.get(url).timeout(const Duration(seconds: 2));
 
-      // Gọi REST API của ESP32 hoặc Backend Node.js
-      final url = Uri.parse('http://${state.espIp}:${state.port}/api/status');
-      final response = await http.get(url).timeout(const Duration(seconds: 2));
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          state.isOnline = true;
+          state.isDemoMode = false;
+          state.lastUpdate = DateTime.now();
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        state.isOnline = true;
-        state.lastUpdate = DateTime.now();
-
-        if (data['currentCount'] != null) {
-          state.currentCount = (data['currentCount'] as num).toInt();
-        }
-        if (data['maxCapacity'] != null) {
-          final newCap = (data['maxCapacity'] as num).toInt();
-          if (newCap != state.maxCapacity) {
-            state.maxCapacity = newCap;
-            state.slots = HeThongBaiXeState.generateDefaultSlots(newCap, state.slots);
+          if (data['currentCount'] != null) {
+            state.currentCount = (data['currentCount'] as num).toInt();
           }
-        }
-        if (data['inGateOpen'] != null) {
-          state.inGate.isOpen = data['inGateOpen'] == true;
-        }
-        if (data['outGateOpen'] != null) {
-          state.outGate.isOpen = data['outGateOpen'] == true;
-        }
-        if (data['sensorIn'] != null) {
-          state.inGate.sensorDetected = data['sensorIn'] == true;
-        }
-        if (data['sensorOut'] != null) {
-          state.outGate.sensorDetected = data['sensorOut'] == true;
-        }
+          if (data['maxCapacity'] != null) {
+            final newCap = (data['maxCapacity'] as num).toInt();
+            if (newCap != state.maxCapacity) {
+              state.maxCapacity = newCap;
+              state.slots = HeThongBaiXeState.generateDefaultSlots(newCap, state.slots);
+            }
+          }
 
-        _dongBoDanhSachODoVoiSoXe();
-        _kiemTraCanhBaoBaiDay();
-      } else {
-        state.isOnline = false;
+          if (data['gates'] is Map) {
+            state.inGate.isOpen = data['gates']['in'] == true;
+            state.outGate.isOpen = data['gates']['out'] == true;
+          } else {
+            if (data['inGateOpen'] != null) state.inGate.isOpen = data['inGateOpen'] == true;
+            if (data['outGateOpen'] != null) state.outGate.isOpen = data['outGateOpen'] == true;
+          }
+
+          if (data['sensors'] is Map) {
+            state.inGate.sensorDetected = data['sensors']['inDetected'] == true;
+            state.outGate.sensorDetected = data['sensors']['outDetected'] == true;
+          } else {
+            if (data['sensorIn'] != null) state.inGate.sensorDetected = data['sensorIn'] == true;
+            if (data['sensorOut'] != null) state.outGate.sensorDetected = data['sensorOut'] == true;
+          }
+
+          _dongBoDanhSachODoVoiSoXe();
+          _kiemTraCanhBaoBaiDay();
+          return;
+        } else {
+          state.isOnline = false;
+        }
       }
     } catch (e) {
-      state.isOnline = false;
+      if (state.isOnline) {
+        state.isOnline = false;
+      }
     } finally {
+      if (state.isDemoMode) {
+        state.lastUpdate = DateTime.now();
+        _kiemTraCanhBaoBaiDay();
+      }
       _isSyncing = false;
       notifyListeners();
     }
@@ -268,33 +274,35 @@ class Esp32Service extends ChangeNotifier {
       return false;
     }
 
-    if (state.isDemoMode) {
-      if (gate == 'in') {
-        state.inGate.isOpen = isOpen;
-      } else {
-        state.outGate.isOpen = isOpen;
+    if (state.espIp.trim().isNotEmpty) {
+      try {
+        final url = Uri.parse(
+            'http://${state.espIp}:${state.port}/api/gate?gate=$gate&action=$action');
+        final resp = await http.post(url).timeout(const Duration(seconds: 3));
+        if (resp.statusCode == 200) {
+          state.isOnline = true;
+          state.isDemoMode = false;
+          if (gate == 'in') {
+            state.inGate.isOpen = isOpen;
+          } else {
+            state.outGate.isOpen = isOpen;
+          }
+          notifyListeners();
+          return true;
+        }
+      } catch (e) {
+        debugPrint('Lỗi điều khiển cổng lên ESP32: $e');
       }
-      notifyListeners();
-      return true;
     }
 
-    try {
-      final url = Uri.parse(
-          'http://${state.espIp}:${state.port}/api/gate?gate=$gate&action=$action');
-      final resp = await http.post(url).timeout(const Duration(seconds: 3));
-      if (resp.statusCode == 200) {
-        if (gate == 'in') {
-          state.inGate.isOpen = isOpen;
-        } else {
-          state.outGate.isOpen = isOpen;
-        }
-        notifyListeners();
-        return true;
-      }
-    } catch (e) {
-      debugPrint('Lỗi điều khiển cổng: $e');
+    // Fallback cục bộ (Demo Mode hoặc khi chưa nối phần cứng)
+    if (gate == 'in') {
+      state.inGate.isOpen = isOpen;
+    } else {
+      state.outGate.isOpen = isOpen;
     }
-    return false;
+    notifyListeners();
+    return true;
   }
 
   /// Chạy thử chu trình mở cổng rồi tự đóng sau 500ms (dành cho kiểm tra phần cứng)
@@ -340,7 +348,7 @@ class Esp32Service extends ChangeNotifier {
       'INFO',
     );
 
-    if (!state.isDemoMode) {
+    if (state.espIp.trim().isNotEmpty) {
       try {
         final url = Uri.parse(
             'http://${state.espIp}:${state.port}/api/set-limit?limit=$limit');
@@ -367,7 +375,7 @@ class Esp32Service extends ChangeNotifier {
       'INFO',
     );
 
-    if (!state.isDemoMode) {
+    if (state.espIp.trim().isNotEmpty) {
       try {
         final url = Uri.parse(
             'http://${state.espIp}:${state.port}/api/set-count?count=$count');
@@ -397,7 +405,7 @@ class Esp32Service extends ChangeNotifier {
       'WARNING',
     );
 
-    if (!state.isDemoMode) {
+    if (state.espIp.trim().isNotEmpty) {
       try {
         final url = Uri.parse('http://${state.espIp}:${state.port}/api/reset-count');
         await http.post(url).timeout(const Duration(seconds: 3));
@@ -419,6 +427,39 @@ class Esp32Service extends ChangeNotifier {
       );
       notifyListeners();
       return false;
+    }
+
+    // Nếu có địa chỉ IP của ESP32, gửi lệnh tới ESP32 trước
+    bool espSuccess = true;
+    if (state.espIp.trim().isNotEmpty) {
+      try {
+        final url = Uri.parse('http://${state.espIp}:${state.port}/api/simulate-enter');
+        final resp = await http.post(url).timeout(const Duration(seconds: 3));
+        if (resp.statusCode == 200) {
+          final resData = jsonDecode(resp.body);
+          if (resData['success'] == true) {
+            state.isOnline = true;
+            state.isDemoMode = false;
+            if (resData['currentCount'] != null) {
+              state.currentCount = (resData['currentCount'] as num).toInt();
+            } else {
+              state.currentCount++;
+            }
+          } else {
+            espSuccess = false;
+            themThongBao('Từ chối xe vào', resData['error'] ?? 'Bãi xe đã đầy!', 'DANGER');
+            notifyListeners();
+            return false;
+          }
+        } else {
+          state.currentCount++;
+        }
+      } catch (e) {
+        debugPrint('Lỗi gửi lệnh xe vào tới ESP32: $e');
+        state.currentCount++;
+      }
+    } else {
+      state.currentCount++;
     }
 
     // Tìm ô còn trống
@@ -446,7 +487,6 @@ class Esp32Service extends ChangeNotifier {
       targetSlot.entryTime = DateTime.now();
     }
 
-    state.currentCount++;
     state.inGate.isOpen = true;
 
     // Lưu vào lịch sử
@@ -473,41 +513,79 @@ class Esp32Service extends ChangeNotifier {
       notifyListeners();
     });
 
-    if (!state.isDemoMode) {
-      try {
-        final url = Uri.parse('http://${state.espIp}:${state.port}/api/simulate-enter');
-        await http.post(url).timeout(const Duration(seconds: 3));
-      } catch (e) {
-        debugPrint('Lỗi gửi lệnh xe vào tới ESP32: $e');
-      }
-    }
-
+    _dongBoDanhSachODoVoiSoXe();
+    _kiemTraCanhBaoBaiDay();
     notifyListeners();
-    return true;
+    return espSuccess;
   }
 
   /// Giả lập hoặc xử lý xe ra bãi (-1)
-  Future<bool> xeRaBai(String oDoId) async {
+  Future<bool> xeRaBai([String? oDoId]) async {
     ODoXe? slot;
-    for (final s in state.slots) {
-      if (s.id == oDoId) {
-        slot = s;
-        break;
+    if (oDoId != null) {
+      for (final s in state.slots) {
+        if (s.id == oDoId) {
+          slot = s;
+          break;
+        }
       }
     }
 
     if (slot == null || !slot.isOccupied) {
+      for (final s in state.slots) {
+        if (s.isOccupied) {
+          slot = s;
+          break;
+        }
+      }
+    }
+
+    if (state.currentCount <= 0 && (slot == null || !slot.isOccupied)) {
       return false;
     }
 
-    final durationStr = slot.formattedDuration;
+    final durationStr = slot?.formattedDuration ?? '0 phút';
+    final vehicleType = slot?.vehicleType ?? 'Ô tô';
+    final slotLabel = slot?.label ?? 'Khu A';
 
-    slot.isOccupied = false;
-    slot.entryTime = null;
-
-    if (state.currentCount > 0) {
-      state.currentCount--;
+    if (slot != null) {
+      slot.isOccupied = false;
+      slot.entryTime = null;
     }
+
+    // Nếu có địa chỉ IP của ESP32, gửi lệnh tới ESP32
+    bool espSuccess = true;
+    if (state.espIp.trim().isNotEmpty) {
+      try {
+        final url = Uri.parse('http://${state.espIp}:${state.port}/api/simulate-leave');
+        final resp = await http.post(url).timeout(const Duration(seconds: 3));
+        if (resp.statusCode == 200) {
+          final resData = jsonDecode(resp.body);
+          if (resData['success'] == true) {
+            state.isOnline = true;
+            state.isDemoMode = false;
+            if (resData['currentCount'] != null) {
+              state.currentCount = (resData['currentCount'] as num).toInt();
+            } else if (state.currentCount > 0) {
+              state.currentCount--;
+            }
+          } else {
+            espSuccess = false;
+            themThongBao('Từ chối xe ra', resData['error'] ?? 'Bãi không có xe!', 'WARNING');
+            notifyListeners();
+            return false;
+          }
+        } else {
+          if (state.currentCount > 0) state.currentCount--;
+        }
+      } catch (e) {
+        debugPrint('Lỗi gửi lệnh xe ra tới ESP32: $e');
+        if (state.currentCount > 0) state.currentCount--;
+      }
+    } else {
+      if (state.currentCount > 0) state.currentCount--;
+    }
+
     state.outGate.isOpen = true;
 
     // Lưu vào lịch sử
@@ -515,17 +593,17 @@ class Esp32Service extends ChangeNotifier {
       0,
       LichSuXeRaVao(
         id: 'LS-${DateTime.now().millisecondsSinceEpoch}',
-        loaiXe: slot.vehicleType,
+        loaiXe: vehicleType,
         suKien: 'RA',
         thoiGian: DateTime.now(),
-        viTriO: slot.label,
+        viTriO: slotLabel,
         ghiChu: 'Thời gian đỗ: $durationStr',
       ),
     );
 
     themThongBao(
       'Xe ra bãi (-1)',
-      'Xe đã xuất bãi từ ${slot.label}. Thời gian đỗ: $durationStr.',
+      'Xe đã xuất bãi từ $slotLabel. Thời gian đỗ: $durationStr.',
       'INFO',
     );
 
@@ -535,17 +613,9 @@ class Esp32Service extends ChangeNotifier {
       notifyListeners();
     });
 
-    if (!state.isDemoMode) {
-      try {
-        final url = Uri.parse('http://${state.espIp}:${state.port}/api/simulate-leave');
-        await http.post(url).timeout(const Duration(seconds: 3));
-      } catch (e) {
-        debugPrint('Lỗi gửi lệnh xe ra tới ESP32: $e');
-      }
-    }
-
+    _dongBoDanhSachODoVoiSoXe();
     notifyListeners();
-    return true;
+    return espSuccess;
   }
 
   /// Cập nhật địa chỉ IP và chế độ hoạt động
@@ -724,6 +794,66 @@ class Esp32Service extends ChangeNotifier {
     } catch (e) {
       debugPrint('Lỗi gửi lệnh MIT App Inventor: $e');
     }
+  }
+
+  /// Kiểm tra trực tiếp kết nối tới Access Point ESP32 (192.168.4.1)
+  Future<ThietBiEsp32TimThay?> kiemTraKetNoiAp() async {
+    const apIp = '192.168.4.1';
+    final sw = Stopwatch()..start();
+    try {
+      final url = Uri.parse('http://$apIp:80/api/status');
+      final response = await http.get(url).timeout(const Duration(milliseconds: 3000));
+      sw.stop();
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data is Map) {
+          final name = data['deviceName']?.toString() ?? 'ESP32 Bãi Đỗ Xe';
+          final connectedSsid = data['connectedSsid']?.toString();
+          return ThietBiEsp32TimThay(
+            ten: name,
+            ip: apIp,
+            port: 80,
+            isApMode: true,
+            ssid: connectedSsid,
+            pingMs: sw.elapsedMilliseconds,
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('[AP Test 192.168.4.1] Chưa kết nối được: $e');
+    }
+    return null;
+  }
+
+  /// Xóa toàn bộ cấu hình Wi-Fi đã lưu trên ESP32 (Khôi phục mặc định AP)
+  Future<bool> resetWifiVeMacDinh() async {
+    final ips = [state.espIp, '192.168.4.1'];
+    final Set<String> daThu = {};
+
+    for (final ip in ips) {
+      if (ip.isEmpty || daThu.contains(ip)) continue;
+      daThu.add(ip);
+
+      try {
+        final url = Uri.parse('http://$ip:${state.port}/api/reset-wifi');
+        final res = await http.get(url).timeout(const Duration(seconds: 4));
+        if (res.statusCode == 200) {
+          state.espIp = '192.168.4.1';
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('esp_ip', '192.168.4.1');
+          themThongBao(
+            'Khôi phục mặc định Wi-Fi',
+            'Đã xóa cấu hình Wi-Fi trên ESP32. Thiết bị đã trở về chế độ Access Point mặc định (BaiDoXe_ESP32 - 192.168.4.1).',
+            'WARNING',
+          );
+          notifyListeners();
+          return true;
+        }
+      } catch (e) {
+        debugPrint('[Reset WiFi - $ip] Thử gửi thất bại: $e');
+      }
+    }
+    return false;
   }
 
   @override

@@ -362,6 +362,40 @@ class _ManHinhCaiDatState extends State<ManHinhCaiDat> {
                   }
                 },
               ),
+              _buildSettingsItem(
+                icon: Icons.wifi_off_rounded,
+                title: 'Khôi phục mặc định Wi-Fi ESP32',
+                subtitle: 'Xóa toàn bộ Wi-Fi đã lưu trên chip và về AP mặc định',
+                onTap: () async {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      title: Text('Xác nhận xóa Wi-Fi ESP32?', style: GoogleFonts.manrope(fontWeight: FontWeight.bold)),
+                      content: Text(
+                        'Hành động này sẽ xóa vĩnh viễn cấu hình Wi-Fi đã lưu trên chip ESP32. Thiết bị sẽ ngắt kết nối router và quay về chế độ phát Access Point mặc định (BaiDoXe_ESP32 - 192.168.4.1).\n\n(Bạn cũng có thể nhấn giữ nút BOOT trên mạch 3 giây).',
+                        style: GoogleFonts.manrope(fontSize: 13),
+                      ),
+                      actions: [
+                        TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Hủy')),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(backgroundColor: MauSac.error, foregroundColor: Colors.white),
+                          onPressed: () => Navigator.of(ctx).pop(true),
+                          child: const Text('Xác nhận xóa'),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirm == true) {
+                    final ok = await esp.resetWifiVeMacDinh();
+                    if (ok) {
+                      _hienThongBao('Đã xóa cấu hình Wi-Fi trên ESP32 thành công!');
+                    } else {
+                      _hienThongBao('Không thể gửi lệnh tới ESP32. Bạn có thể nhấn giữ nút BOOT trên mạch 3s để xóa.', isError: true);
+                    }
+                  }
+                },
+              ),
             ]),
             const SizedBox(height: 24),
 
@@ -376,7 +410,7 @@ class _ManHinhCaiDatState extends State<ManHinhCaiDat> {
               _buildSettingsItem(
                 icon: Icons.info_outline,
                 title: 'Phiên bản ứng dụng',
-                trailingText: 'v1.0.0 IoT',
+                trailingText: 'v1.1.0 IoT',
                 showChevron: false,
               ),
               _buildSettingsItem(

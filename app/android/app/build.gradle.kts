@@ -24,7 +24,11 @@ android {
     }
 
     signingConfigs {
-        getByName("debug") {
+        create("release") {
+            storeFile = file("key.jks")
+            storePassword = "baidoxe123"
+            keyAlias = "baidoxe"
+            keyPassword = "baidoxe123"
             enableV1Signing = true
             enableV2Signing = true
         }
@@ -32,7 +36,7 @@ android {
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 

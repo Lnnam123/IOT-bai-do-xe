@@ -2,7 +2,7 @@ name: smart_parking_app
 description: "Ứng dụng giám sát và quản lý bãi đỗ xe thông minh kết nối ESP32 IoT"
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.1.0+2
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
