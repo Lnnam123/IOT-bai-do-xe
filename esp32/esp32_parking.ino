@@ -145,41 +145,68 @@ void showDefaultLcd() {
   }
 }
 
-// ==================== 5. CAC HAM DIEU KHIEN BARIE ====================
-// Dieu khien Cong Vao
+// ==================== 5. CÁC HÀM ĐIỀU KHIỂN ĐỘNG CƠ SERVO (BARIE) ====================
+
+/**
+ * @brief Hàm MỞ Barie Cổng Vào (D18)
+ * - Xoay Servo về góc GOC_MO (0 độ - dựng thẳng đứng thanh chắn)
+ * - Đánh dấu cờ isInGateOpen = true để biết cổng đang mở
+ * - Lưu lại mốc thời gian (millis) để sau 3 giây tự động hạ barie
+ * - Cập nhật thông báo lên màn hình LCD 1602
+ */
 void openInGate() {
-  inGateServo.write(GOC_MO);
-  isInGateOpen = true;
-  inGateOpenedTime = millis();
-  Serial.println(">>> [CONG VAO] Barie: DANG MO");
+  inGateServo.write(GOC_MO);       // Điều khiển Servo Cổng Vào xoay về 0 độ (Mở)
+  isInGateOpen = true;             // Đặt cờ trạng thái: Barie Vào ĐANG MỞ
+  inGateOpenedTime = millis();     // Bắt đầu bấm giờ (để tự đóng sau 3000ms)
+  Serial.println(">>> [CONG VAO] Barie: DANG MO (Góc 0 độ)");
+  
+  // Hiển thị thông điệp lên màn hình LCD 1602
   if (currentCarCount >= maxCapacity) {
-    updateLcd(">> MO CONG VAO", "XE CUOI (DA DAY)");
+    updateLcd(">> MO CONG VAO", "XE CUOI (DA DAY)"); // Nếu đây là xe cuối cùng vừa đủ sức chứa
   } else {
-    updateLcd(">> MO CONG VAO", "XIN MOI VAO!");
+    updateLcd(">> MO CONG VAO", "XIN MOI VAO!");     // Bãi còn chỗ trống
   }
 }
 
+/**
+ * @brief Hàm ĐÓNG Barie Cổng Vào (D18)
+ * - Xoay Servo về góc GOC_DONG (90 độ - hạ nằm ngang chắn đường)
+ * - Đặt cờ isInGateOpen = false
+ * - Khôi phục giao diện hiển thị mặc định của màn hình LCD 1602
+ */
 void closeInGate() {
-  inGateServo.write(GOC_DONG);
-  isInGateOpen = false;
-  Serial.println("<<< [CONG VAO] Barie: DA DONG");
-  showDefaultLcd();
+  inGateServo.write(GOC_DONG);     // Điều khiển Servo Cổng Vào xoay về 90 độ (Đóng)
+  isInGateOpen = false;            // Đặt cờ trạng thái: Barie Vào ĐÃ ĐÓNG
+  Serial.println("<<< [CONG VAO] Barie: DA DONG (Góc 90 độ)");
+  showDefaultLcd();                // Hiển thị lại số xe hiện tại / sức chứa trên LCD
 }
 
-// Dieu khien Cong Ra
+/**
+ * @brief Hàm MỞ Barie Cổng Ra (D19)
+ * - Xoay Servo về góc GOC_MO (0 độ - dựng thẳng đứng cho xe ra)
+ * - Đánh dấu cờ isOutGateOpen = true
+ * - Lưu mốc thời gian mở để tự động đóng sau 3 giây
+ * - Hiển thị lời chào "HẸN GẶP LẠI" lên LCD 1602
+ */
 void openOutGate() {
-  outGateServo.write(GOC_MO);
-  isOutGateOpen = true;
-  outGateOpenedTime = millis();
-  Serial.println(">>> [CONG RA] Barie: DANG MO");
-  updateLcd("<< MO CONG RA", "HEN GAP LAI!");
+  outGateServo.write(GOC_MO);      // Điều khiển Servo Cổng Ra xoay về 0 độ (Mở)
+  isOutGateOpen = true;            // Đặt cờ trạng thái: Barie Ra ĐANG MỞ
+  outGateOpenedTime = millis();    // Bắt đầu bấm giờ đóng tự động
+  Serial.println(">>> [CONG RA] Barie: DANG MO (Góc 0 độ)");
+  updateLcd("<< MO CONG RA", "HEN GAP LAI!"); // Lời chào xe rời bãi trên LCD
 }
 
+/**
+ * @brief Hàm ĐÓNG Barie Cổng Ra (D19)
+ * - Xoay Servo về góc GOC_DONG (90 độ - hạ nằm ngang chắn đường)
+ * - Đặt cờ isOutGateOpen = false
+ * - Khôi phục màn hình LCD 1602
+ */
 void closeOutGate() {
-  outGateServo.write(GOC_DONG);
-  isOutGateOpen = false;
-  Serial.println("<<< [CONG RA] Barie: DA DONG");
-  showDefaultLcd();
+  outGateServo.write(GOC_DONG);    // Điều khiển Servo Cổng Ra xoay về 90 độ (Đóng)
+  isOutGateOpen = false;           // Đặt cờ trạng thái: Barie Ra ĐÃ ĐÓNG
+  Serial.println("<<< [CONG RA] Barie: DA DONG (Góc 90 độ)");
+  showDefaultLcd();                // Hiển thị lại thông tin số xe lên LCD
 }
 
 // ==================== 5.1. HAM XOA TOAN BO WIFI VE MAC DINH (FACTORY RESET) ====================
@@ -317,74 +344,85 @@ void loop() {
     }
   }
 
-  int currentInVal = digitalRead(PIN_SENSOR_IN);
-  int currentOutVal = digitalRead(PIN_SENSOR_OUT);
+  // Đọc mức logic hiện tại của 2 cảm biến hồng ngoại IR:
+  // - Cảm biến IR không có vật cản: Chân OUT xuất mức CAO (HIGH / 1)
+  // - Cảm biến IR phát hiện có xe cản: Chân OUT kéo xuống mức THẤP (LOW / 0)
+  int currentInVal = digitalRead(PIN_SENSOR_IN);   // Đọc cảm biến Cổng Vào (chân D2)
+  int currentOutVal = digitalRead(PIN_SENSOR_OUT); // Đọc cảm biến Cổng Ra (chân D4)
 
-  // 2. XU LY CONG VAO (IR chan D2: Bat canh xuong HIGH -> LOW)
+  // =========================================================================
+  // 2. XỬ LÝ XE ĐẾN CỔNG VÀO (IR Cổng Vào chân D2: Bắt sườn xuống HIGH -> LOW)
+  // =========================================================================
   if (lastSensorInVal == HIGH && currentInVal == LOW) {
-    delay(50); // Debounce
-    if (digitalRead(PIN_SENSOR_IN) == LOW) {
-      Serial.println("\n>>> [CONG VAO] Phat hien xe tien toi cong!");
+    delay(50); // Khử nhiễu tín hiệu (Debounce) trong 50 mili-giây
+    if (digitalRead(PIN_SENSOR_IN) == LOW) { // Xác thực xe thực sự đang đỗ trước cổng
+      Serial.println("\n>>> [CONG VAO] Phát hiện xe tiến tới cổng vào!");
 
-      // Kiem tra suc chua bai xe (Xe cuoi cung van cho phep vao de lap day bai)
+      // Kiểm tra sức chứa bãi xe (Nếu còn chỗ trống: currentCarCount < maxCapacity)
       if (currentCarCount < maxCapacity) {
-        currentCarCount++;
-        Serial.printf("    -> DONG Y CHO VAO! So xe trong bai: %d/%d\n",
+        currentCarCount++; // Tăng biến đếm tổng số xe trong bãi lên 1
+        Serial.printf("    -> ĐỒNG Ý CHO VÀO! Số xe trong bãi: %d/%d\n",
                       currentCarCount, maxCapacity);
-        openInGate();
+        openInGate();      // Gọi hàm MỞ Barie Cổng Vào (Servo D18 quay về 0 độ)
       } else {
-        // Da day (>= maxCapacity) -> Tu choi khong mo cong vao!
-        Serial.printf("    [CANH BAO] BAI DA DAY (%d/%d xe)! KHOA BARIE VAO, "
-                      "KHONG CHO VAO!\n",
+        // Bãi đã đầy xe (currentCarCount >= maxCapacity) -> TỪ CHỐI MỞ BARIE
+        Serial.printf("    [CẢNH BÁO] BÃI ĐÃ ĐẦY (%d/%d xe)! KHÓA BARIE VÀO, TỪ CHỐI CHO VÀO!\n",
                       currentCarCount, maxCapacity);
-        closeInGate();
-        updateLcd("! BAI DA DAY !", "TU CHOI CHO VAO");
+        closeInGate();                               // Đảm bảo thanh chắn hạ ngang khóa cứng (90 độ)
+        updateLcd("! BAI DA DAY !", "TU CHOI CHO VAO"); // Báo động lên màn hình LCD 1602
       }
     }
   }
-  lastSensorInVal = currentInVal;
+  lastSensorInVal = currentInVal; // Lưu lại trạng thái cảm biến để so sánh ở chu kỳ loop tiếp theo
 
-  // 3. XU LY CONG RA (IR chan D4: Bat canh xuong HIGH -> LOW)
+  // =========================================================================
+  // 3. XỬ LÝ XE ĐẾN CỔNG RA (IR Cổng Ra chân D4: Bắt sườn xuống HIGH -> LOW)
+  // =========================================================================
   if (lastSensorOutVal == HIGH && currentOutVal == LOW) {
-    delay(50); // Debounce
-    if (digitalRead(PIN_SENSOR_OUT) == LOW) {
-      Serial.println("\n<<< [CONG RA] Phat hien vat the tai cong ra!");
+    delay(50); // Khử nhiễu tín hiệu (Debounce) trong 50 mili-giây
+    if (digitalRead(PIN_SENSOR_OUT) == LOW) { // Xác thực có xe thực tế trước cổng ra
+      Serial.println("\n<<< [CONG RA] Phát hiện xe tiến tới cổng ra!");
 
-      // Chi mo cong ra neu trong bai DANG CO XE (> 0)
+      // Chỉ cho phép mở cổng ra nếu trong bãi ĐANG CÓ XE (currentCarCount > 0)
       if (currentCarCount > 0) {
-        currentCarCount--;
-        Serial.printf("    -> DONG Y CHO RA! So xe con lai: %d/%d\n",
+        currentCarCount--; // Giảm số xe trong bãi đi 1
+        Serial.printf("    -> ĐỒNG Ý CHO RA! Số xe còn lại: %d/%d\n",
                       currentCarCount, maxCapacity);
-        openOutGate();
+        openOutGate();     // Gọi hàm MỞ Barie Cổng Ra (Servo D19 quay về 0 độ)
       } else {
-        // Trong bai dang 0 xe -> TU CHOI MO CONG RA!
-        Serial.println(
-            "    [CANH BAO] BAI KHONG CO XE (0 xe)! TU CHOI MO BARIE RA!");
-        closeOutGate();
-        updateLcd("BAI KHONG CO XE!", "TU CHOI MO CONG");
+        // Trong bãi đang 0 xe -> Cảnh báo chống gian lận hoặc bấm nhầm
+        Serial.println("    [CẢNH BÁO] BÃI KHÔNG CÓ XE (0 xe)! TỪ CHỐI MỞ BARIE RA!");
+        closeOutGate();                              // Khóa thanh chắn ra ở 90 độ
+        updateLcd("BAI KHONG CO XE!", "TU CHOI MO CONG"); // Báo lỗi lên LCD
       }
     }
   }
-  lastSensorOutVal = currentOutVal;
+  lastSensorOutVal = currentOutVal; // Lưu lại trạng thái cảm biến ra
 
-  // 4. TU DONG DONG BARIE CONG VAO (An toan: Xe da qua khoi IR D2)
+  // =========================================================================
+  // 4. TỰ ĐỘNG ĐÓNG BARIE CỔNG VÀO (An toàn: Sau 3 giây và xe đã qua hẳn)
+  // =========================================================================
   if (isInGateOpen && (millis() - inGateOpenedTime >= THOI_GIAN_MO)) {
+    // Kiểm tra cảm biến D2 xem xe đã rời khỏi khu vực barie chưa (tránh kẹp xe)
     if (digitalRead(PIN_SENSOR_IN) == HIGH) {
-      closeInGate();
-      Serial.println("    -> Barie Cong Vao: Da dong an toan.");
+      closeInGate(); // Xe đã đi qua an toàn -> HẠ BARIE VÀO XUỐNG (90 độ)
+      Serial.println("    -> Barie Cổng Vào: Đã đóng an toàn.");
     } else {
-      // Xe van dang de mat cam bien, hoan dong de tranh kep xe
+      // Xe vẫn đang đè lên mắt cảm biến -> Gia hạn thêm thời gian chờ
       inGateOpenedTime = millis();
     }
   }
 
-  // 5. TU DONG DONG BARIE CONG RA (An toan: Xe da qua khoi IR D4)
+  // =========================================================================
+  // 5. TỰ ĐỘNG ĐÓNG BARIE CỔNG RA (An toàn: Sau 3 giây và xe đã qua hẳn)
+  // =========================================================================
   if (isOutGateOpen && (millis() - outGateOpenedTime >= THOI_GIAN_MO)) {
+    // Kiểm tra cảm biến D4 xem xe đã chạy qua khỏi barie ra chưa
     if (digitalRead(PIN_SENSOR_OUT) == HIGH) {
-      closeOutGate();
-      Serial.println("    -> Barie Cong Ra: Da dong an toan.");
+      closeOutGate(); // Xe đã ra ngoài an toàn -> HẠ BARIE RA XUỐNG (90 độ)
+      Serial.println("    -> Barie Cổng Ra: Đã đóng an toàn.");
     } else {
-      // Xe van dang de mat cam bien ra
+      // Xe vẫn đang đứng chắn cảm biến ra -> Hoãn đóng barie
       outGateOpenedTime = millis();
     }
   }
@@ -607,47 +645,60 @@ void checkClient() {
     return;
   }
 
-  // 3.1. API Mo phong / Dieu khien Xe Vao (+1) tu App & Web: /api/simulate-enter, /api/car-in
+  // =========================================================================
+  // 3.1. API XE VÀO (+1) TỪ APP / WEB: /api/simulate-enter hoặc /api/car-in
+  // Nhận lệnh khi người dùng bấm nút "Xe Vào (+1)" hoặc "Nhận xe vào đỗ" trên App
+  // =========================================================================
   if (request.indexOf("/api/simulate-enter") != -1 || request.indexOf("/api/car-in") != -1 || request.indexOf("/api/enter") != -1) {
     if (currentCarCount < maxCapacity) {
-      currentCarCount++;
-      Serial.printf("[APP/WEB] Xe vao (+1)! So xe hien tai: %d/%d xe\n", currentCarCount, maxCapacity);
-      openInGate();
+      currentCarCount++; // Tăng số lượng xe trong bãi lên 1
+      Serial.printf("[APP/WEB] Lệnh xe vào (+1)! Số xe hiện tại: %d/%d xe\n", currentCarCount, maxCapacity);
+      openInGate();      // Gọi hàm MỞ Barie Cổng Vào (Servo D18 quay về 0 độ)
+      // Phản hồi chuỗi JSON báo thành công về cho App để giao diện cập nhật ngay
       sendJsonResponse(client, "{\"success\":true,\"action\":\"enter\",\"currentCount\":" + String(currentCarCount) + ",\"maxCapacity\":" + String(maxCapacity) + ",\"inGateOpen\":true}");
     } else {
-      Serial.println("[APP/WEB] Tu choi xe vao! Bai xe da day.");
-      closeInGate();
+      // Bãi xe đã đầy -> Từ chối xe vào
+      Serial.println("[APP/WEB] Bãi xe đã đầy! Từ chối mở barie vào.");
+      closeInGate();     // Giữ barie vào luôn đóng (90 độ)
       updateLcd("! BAI DA DAY !", "TU CHOI CHO VAO");
+      // Trả JSON báo thất bại về App để App hiển thị thông báo "Bãi xe đã đầy"
       sendJsonResponse(client, "{\"success\":false,\"error\":\"Bai xe da day!\",\"currentCount\":" + String(currentCarCount) + ",\"maxCapacity\":" + String(maxCapacity) + ",\"inGateOpen\":false}");
     }
     return;
   }
 
-  // 3.2. API Mo phong / Dieu khien Xe Ra (-1) tu App & Web: /api/simulate-leave, /api/car-out
+  // =========================================================================
+  // 3.2. API XE RA (-1) TỪ APP / WEB: /api/simulate-leave hoặc /api/car-out
+  // Nhận lệnh khi người dùng bấm nút "Xe Ra (-1)" hoặc "Xác nhận xe rời ô" trên App
+  // =========================================================================
   if (request.indexOf("/api/simulate-leave") != -1 || request.indexOf("/api/car-out") != -1 || request.indexOf("/api/leave") != -1) {
     if (currentCarCount > 0) {
-      currentCarCount--;
-      Serial.printf("[APP/WEB] Xe ra (-1)! So xe con lai: %d/%d xe\n", currentCarCount, maxCapacity);
-      openOutGate();
+      currentCarCount--; // Giảm số lượng xe trong bãi đi 1
+      Serial.printf("[APP/WEB] Lệnh xe ra (-1)! Số xe còn lại: %d/%d xe\n", currentCarCount, maxCapacity);
+      openOutGate();     // Gọi hàm MỞ Barie Cổng Ra (Servo D19 quay về 0 độ)
+      // Phản hồi chuỗi JSON cập nhật về cho App
       sendJsonResponse(client, "{\"success\":true,\"action\":\"leave\",\"currentCount\":" + String(currentCarCount) + ",\"maxCapacity\":" + String(maxCapacity) + ",\"outGateOpen\":true}");
     } else {
-      Serial.println("[APP/WEB] Tu choi xe ra! Bai khong co xe.");
-      closeOutGate();
+      // Trong bãi đang 0 xe -> Báo bãi không có xe
+      Serial.println("[APP/WEB] Bãi đang không có xe! Từ chối mở barie ra.");
+      closeOutGate();    // Đóng barie ra (90 độ)
       updateLcd("BAI KHONG CO XE!", "TU CHOI MO CONG");
       sendJsonResponse(client, "{\"success\":false,\"error\":\"Bai khong co xe!\",\"currentCount\":" + String(currentCarCount) + ",\"maxCapacity\":" + String(maxCapacity) + ",\"outGateOpen\":false}");
     }
     return;
   }
 
-  // 3.3. API Dieu chinh so luong xe tu App & Web: /api/set-count?count=X
+  // =========================================================================
+  // 3.3. API ĐIỀU CHỈNH SỐ XE TRỰC TIẾP: /api/set-count?count=X
+  // =========================================================================
   if (request.indexOf("/api/set-count") != -1) {
     int idx = request.indexOf("count=");
     if (idx != -1) {
       int val = request.substring(idx + 6).toInt();
       if (val >= 0 && val <= maxCapacity) {
-        currentCarCount = val;
-        Serial.printf("[APP/WEB] Da dieu chinh so luong xe thanh: %d/%d xe\n", currentCarCount, maxCapacity);
-        showDefaultLcd();
+        currentCarCount = val; // Đồng bộ số xe theo số lượng nhập trên App
+        Serial.printf("[APP/WEB] Đã điều chỉnh số lượng xe thành: %d/%d xe\n", currentCarCount, maxCapacity);
+        showDefaultLcd();      // Cập nhật lên màn hình LCD 1602
       }
     }
     sendJsonResponse(client, "{\"success\":true,\"currentCount\":" + String(currentCarCount) + ",\"maxCapacity\":" + String(maxCapacity) + "}");
